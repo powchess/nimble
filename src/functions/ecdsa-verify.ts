@@ -8,7 +8,7 @@ export default function ecdsaVerify(signature: Signature, hash32: Uint8Array, pu
 	const hash32Pos = sPos - BN_SIZE;
 	const publicKeyPos = hash32Pos - PT_SIZE;
 
-	const ecdsaVerify = getEcdsaExports().ecdsa_verify;
+	const ecdsaVerify = getEcdsaExports().ecdsa_verify as CallableFunction;
 
 	writeBN(memory, rPos, signature.r);
 	writeBN(memory, sPos, signature.s);

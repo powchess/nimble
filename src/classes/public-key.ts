@@ -8,6 +8,7 @@ import calculatePublicKey from '../functions/calculate-public-key';
 import encodePublicKey from '../functions/encode-public-key';
 import isBuffer from '../functions/is-buffer';
 import verifyPoint from '../functions/verify-point';
+import nimble from '../../index';
 
 // These WeakMap caches allow the objects themselves to maintain their immutability
 const PRIVATE_KEY_TO_PUBLIC_KEY_CACHE = new WeakMap(); // Cached to reduce secp256k1 multiplication
@@ -34,7 +35,7 @@ export default class PublicKey {
 
 	static fromString(pubkey: string): PublicKey {
 		const point = decodePublicKey(decodeHex(pubkey));
-		const testnet = require('../index').testnet;
+		const testnet = nimble.testnet;
 		const compressed = pubkey.length === 66;
 		return new PublicKey(point, testnet, compressed, false);
 	}

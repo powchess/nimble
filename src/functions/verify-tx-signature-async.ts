@@ -9,7 +9,7 @@ async function verifyTxSignatureAsync(
 	vin: number,
 	signature: Uint8Array,
 	pubkey: Point,
-	parentScript: ByteArray,
+	parentScript: Uint8Array,
 	parentSatoshis: number
 ): Promise<boolean> {
 	const dersig = signature.slice(0, signature.length - 1);

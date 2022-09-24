@@ -33,7 +33,8 @@ function decodeCompressedPublicKey(buffer: Uint8Array): Point {
 
 	writeBN(memory, xPos, x);
 
-	getSecp256k1Exports().decompress_y(yPos, xPos, buffer[0]);
+	const decompressY = getSecp256k1Exports().decompress_y as CallableFunction;
+	decompressY(yPos, xPos, buffer[0]);
 
 	const y = readBN(memory, yPos);
 

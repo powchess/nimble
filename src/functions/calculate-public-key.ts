@@ -7,7 +7,8 @@ export default function calculatePublicKey(privateKey: Uint8Array): Point {
 	const publicKeyPos = privateKeyPos - PT_SIZE;
 
 	writeBN(memory, privateKeyPos, privateKey);
-	getSecp256k1Exports().g_mul(publicKeyPos, privateKeyPos);
+	const gMul = getSecp256k1Exports().g_mul as CallableFunction;
+	gMul(publicKeyPos, privateKeyPos);
 
 	return {
 		x: readBN(memory, publicKeyPos),

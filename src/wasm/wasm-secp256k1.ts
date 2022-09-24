@@ -20,13 +20,13 @@ const MEMORY_PER_WASM = 1310720;
 const SECP256K1_INIT_DATA = BN_SIZE * 40000;
 const MEMORY_PAGES = Math.ceil((MEMORY_PER_WASM * 4 + SECP256K1_INIT_DATA) / WASM_PAGE_SIZE);
 
-let memory = null;
-let memoryBuffer = null;
+let memory: WebAssembly.Memory | null = null;
+let memoryBuffer: Uint8Array | null = null;
 
 let bnInstance: WebAssembly.Instance | null = null;
-let bn2Instance = null;
-let secp256k1Instance = null;
-let ecdsaInstance = null;
+let bn2Instance: WebAssembly.Instance | null = null;
+let secp256k1Instance: WebAssembly.Instance | null = null;
+let ecdsaInstance: WebAssembly.Instance | null = null;
 
 let startPosition: number | null = null;
 let nPos: number | null = null;
@@ -55,7 +55,7 @@ export const getBnExports = () => {
 	return bnInstance.exports;
 };
 
-export const getBn2Exports = () => {
+const getBn2Exports = () => {
 	if (!bn2Instance) {
 		const bytes = decodeBase64(BN2_WASM_BASE64);
 		const module = new WebAssembly.Module(bytes);
@@ -76,7 +76,8 @@ export const getSecp256k1Exports = () => {
 
 		const memory = getMemoryBuffer();
 		startPosition = memory.length - SECP256K1_INIT_DATA / 2;
-		secp256k1Instance.exports.secp256k1_init(startPosition);
+		const secp256k1Init = secp256k1Instance.exports.secp256k1_init as CallableFunction;
+		secp256k1Init(startPosition);
 		nPos = startPosition + BN_SIZE;
 	}
 	return secp256k1Instance.exports;
@@ -89,12 +90,13 @@ export const getEcdsaExports = () => {
 		const imports = { env: { memory: getMemory() } };
 		Object.assign(imports.env, getBnExports(), getBn2Exports(), getSecp256k1Exports());
 		ecdsaInstance = new WebAssembly.Instance(module, imports);
-		ecdsaInstance.exports.ecdsa_init(startPosition);
+		const ecdsaInit = ecdsaInstance.exports.ecdsa_init as CallableFunction;
+		ecdsaInit(startPosition);
 	}
 	return ecdsaInstance.exports;
 };
 
-export function writeBN(memory, pos: number, buffer: Uint8Array) {
+export function writeBN(memory: Uint8Array, pos: number, buffer: Uint8Array) {
 	// Our digits are stored on the WASM side in reverse order, and each digit also in little endian,
 	// so we simply can write each byte in reverse order.
 	const padding = (DIGIT_SIZE - (buffer.length % DIGIT_SIZE)) % DIGIT_SIZE;
@@ -115,10 +117,11 @@ export function writeBN(memory, pos: number, buffer: Uint8Array) {
 	memory[pos + BN_SIZE - 6] = 0;
 	memory[pos + BN_SIZE - 7] = 0;
 	memory[pos + BN_SIZE - 8] = length / DIGIT_SIZE;
-	getBnExports().bn_unpad(pos);
+	const bnUnpad = getBnExports().bn_unpad as CallableFunction;
+	bnUnpad(pos);
 }
 
-export function readBN(memory, pos: number) {
+export function readBN(memory: Uint8Array, pos: number) {
 	let size = memory[pos + BN_SIZE - 8] * DIGIT_SIZE;
 	for (let i = pos + size - 1; i >= pos; i--) {
 		if (memory[i]) break;

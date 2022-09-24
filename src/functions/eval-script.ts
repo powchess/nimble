@@ -11,11 +11,15 @@ import ripemd160 from './ripemd160';
 import sha1 from './sha1';
 import sha256 from './sha256';
 import Transaction from 'classes/transaction';
+import OP_CODES from 'constants/opcodes';
+import { Chunk } from 'types/general';
 
 const defaults = {
 	async: false,
 	trace: true,
 };
+
+type NumNeg = { num: bigint; neg: boolean };
 
 export default function evalScript(
 	unlockScript: Uint8Array,
@@ -30,22 +34,22 @@ export default function evalScript(
 		...opts,
 	};
 
-	const chunks = [];
-	const stack = [];
-	const altStack = [];
-	const branchExec = [];
-	const stackTrace = [];
+	const chunks: Chunk[] = [];
+	const stack: Uint8Array[] = [];
+	const altStack: Uint8Array[] = [];
+	const branchExec: boolean[] = [];
+	const stackTrace: [{ opcode: number; exec: boolean }, Uint8Array[], Uint8Array[]][] = [];
 	let checkIndex = 0;
 	let done = false;
 
-	function traceStack(i, exec = true) {
+	function traceStack(i: number, exec = true) {
 		if (trace && i >= 0) {
 			const { opcode } = chunks[i];
 			stackTrace.push([{ opcode, exec }, [...stack], [...altStack]]);
 		}
 	}
 
-	function finish(error = null) {
+	function finish(error: Error | null = null) {
 		if (stackTrace.length) traceStack(stackTrace.length);
 		if (!error && branchExec.length) error = new Error('ENDIF missing');
 		const success = !error && !!stack.length && stack[stack.length - 1].some((x) => x);
@@ -69,39 +73,35 @@ export default function evalScript(
 		chunks.push(...lockChunks);
 
 		const pop = () => {
-			if (!stack.length) throw new Error('stack empty');
-			return stack.pop();
+			if (stack.length === 0) throw new Error('stack empty');
+			return stack.pop() as Uint8Array;
 		};
 
 		const altpop = () => {
-			if (!altStack.length) throw new Error('alt stack empty');
-			return altStack.pop();
+			if (altStack.length === 0) throw new Error('alt stack empty');
+			return altStack.pop() as Uint8Array;
 		};
 
 		const popBool = () => pop().some((x) => x);
 
-		const encodeNum = (num, neg) => {
-			if (typeof num === 'object') {
-				neg = num.neg;
-				num = num.num;
-			}
-			if (BigInt(num) === BigInt(0)) return [];
+		const encodeNum = (num: bigint | number, neg?: boolean): Uint8Array => {
+			if (BigInt(num) === BigInt(0)) return new Uint8Array([]);
 			const arr = Array.from(decodeHex(BigInt(num).toString(16))).reverse();
 			const full = arr[arr.length - 1] & 0x80;
 			if (full) arr.push(0x00);
-			if (neg) arr[arr.length - 1] |= 0x80;
-			return arr;
+			if (neg === true) arr[arr.length - 1] |= 0x80;
+			return new Uint8Array(arr);
 		};
 
-		const decodeNum = (arr) => {
-			if (!arr.length) return { num: BigInt(0), neg: false };
+		const decodeNum = (arr: number[] | number | Uint8Array): NumNeg => {
+			if (typeof arr === 'number') return { num: BigInt(0), neg: false };
 			const neg = !!(arr[arr.length - 1] & 0x80);
 			arr[arr.length - 1] &= 0x7f;
-			const num = BigInt(`0x${encodeHex(Array.from(arr).reverse())}`);
+			const num = BigInt(`0x${encodeHex(new Uint8Array(arr).reverse())}`);
 			return { num, neg };
 		};
 
-		const addNum = (a, b) => {
+		const addNum = (a: NumNeg, b: NumNeg): NumNeg => {
 			if (a.neg === b.neg) {
 				return { num: a.num + b.num, neg: a.neg };
 			} else {
@@ -109,17 +109,18 @@ export default function evalScript(
 			}
 		};
 
-		const subNum = (b, a) => addNum(a, { num: b.num, neg: !b.neg });
+		const subNum = (b: NumNeg, a: NumNeg) => addNum(a, { num: b.num, neg: !b.neg });
 
-		const lessThan = (b, a) => (a.neg !== b.neg ? a.neg : (a.neg && a.num > b.num) || (!a.neg && a.num < b.num));
+		const lessThan = (b: NumNeg, a: NumNeg) =>
+			a.neg !== b.neg ? a.neg : (a.neg && a.num > b.num) || (!a.neg && a.num < b.num);
 
-		const greaterThan = (b, a) =>
+		const greaterThan = (b: NumNeg, a: NumNeg) =>
 			a.neg !== b.neg ? !a.neg : (a.neg && a.num < b.num) || (!a.neg && a.num > b.num);
 
-		const lessThanOrEqual = (b, a) =>
+		const lessThanOrEqual = (b: NumNeg, a: NumNeg) =>
 			a.neg !== b.neg ? a.neg : (a.neg && a.num >= b.num) || (!a.neg && a.num <= b.num);
 
-		const greaterThanOrEqual = (b, a) =>
+		const greaterThanOrEqual = (b: NumNeg, a: NumNeg) =>
 			a.neg !== b.neg ? !a.neg : (a.neg && a.num <= b.num) || (!a.neg && a.num >= b.num);
 
 		let i = 0;
@@ -135,15 +136,16 @@ export default function evalScript(
 					// Because we trace the previous chunk, this funky code works out if
 					// it is an opcode that is executed or not
 					const executed =
-						(prevOp === OP_IF && sub === 0) || ([OP_ELSE, OP_ENDIF].includes(prevOp) && psub === 0);
+						(prevOp === OP_CODES.OP_IF && sub === 0) ||
+						([OP_CODES.OP_ELSE, OP_CODES.OP_ENDIF].includes(prevOp) && psub === 0);
 					traceStack(i - 1, executed);
 					psub = sub;
-					if (opcode === OP_IF || opcode === OP_NOTIF) {
+					if (opcode === OP_CODES.OP_IF || opcode === OP_CODES.OP_NOTIF) {
 						sub++;
-					} else if (opcode === OP_ENDIF) {
+					} else if (opcode === OP_CODES.OP_ENDIF) {
 						if (sub === 0) break;
 						sub--;
-					} else if (opcode === OP_ELSE) {
+					} else if (opcode === OP_CODES.OP_ELSE) {
 						if (!sub) break;
 					}
 					i++;
@@ -164,137 +166,139 @@ export default function evalScript(
 			}
 
 			switch (chunk.opcode) {
-				case OP_1NEGATE:
-					stack.push([0x81]);
+				case OP_CODES.OP_1NEGATE:
+					stack.push(new Uint8Array([0x81]));
 					break;
-				case OP_0:
-					stack.push([]);
+				case OP_CODES.OP_0:
+					stack.push(new Uint8Array([]));
 					break;
-				case OP_1:
-					stack.push([1]);
+				case OP_CODES.OP_1:
+					stack.push(new Uint8Array([1]));
 					break;
-				case OP_2:
-					stack.push([2]);
+				case OP_CODES.OP_2:
+					stack.push(new Uint8Array([2]));
 					break;
-				case OP_3:
-					stack.push([3]);
+				case OP_CODES.OP_3:
+					stack.push(new Uint8Array([3]));
 					break;
-				case OP_4:
-					stack.push([4]);
+				case OP_CODES.OP_4:
+					stack.push(new Uint8Array([4]));
 					break;
-				case OP_5:
-					stack.push([5]);
+				case OP_CODES.OP_5:
+					stack.push(new Uint8Array([5]));
 					break;
-				case OP_6:
-					stack.push([6]);
+				case OP_CODES.OP_6:
+					stack.push(new Uint8Array([6]));
 					break;
-				case OP_7:
-					stack.push([7]);
+				case OP_CODES.OP_7:
+					stack.push(new Uint8Array([7]));
 					break;
-				case OP_8:
-					stack.push([8]);
+				case OP_CODES.OP_8:
+					stack.push(new Uint8Array([8]));
 					break;
-				case OP_9:
-					stack.push([9]);
+				case OP_CODES.OP_9:
+					stack.push(new Uint8Array([9]));
 					break;
-				case OP_10:
-					stack.push([10]);
+				case OP_CODES.OP_10:
+					stack.push(new Uint8Array([10]));
 					break;
-				case OP_11:
-					stack.push([11]);
+				case OP_CODES.OP_11:
+					stack.push(new Uint8Array([11]));
 					break;
-				case OP_12:
-					stack.push([12]);
+				case OP_CODES.OP_12:
+					stack.push(new Uint8Array([12]));
 					break;
-				case OP_13:
-					stack.push([13]);
+				case OP_CODES.OP_13:
+					stack.push(new Uint8Array([13]));
 					break;
-				case OP_14:
-					stack.push([14]);
+				case OP_CODES.OP_14:
+					stack.push(new Uint8Array([14]));
 					break;
-				case OP_15:
-					stack.push([15]);
+				case OP_CODES.OP_15:
+					stack.push(new Uint8Array([15]));
 					break;
-				case OP_16:
-					stack.push([16]);
+				case OP_CODES.OP_16:
+					stack.push(new Uint8Array([16]));
 					break;
-				case OP_NOP:
+				case OP_CODES.OP_NOP:
 					break;
-				case OP_IF:
+				case OP_CODES.OP_IF:
 					branchExec.push(popBool());
 					break;
-				case OP_NOTIF:
+				case OP_CODES.OP_NOTIF:
 					branchExec.push(!popBool());
 					break;
-				case OP_ELSE:
+				case OP_CODES.OP_ELSE:
 					if (!branchExec.length) throw new Error('ELSE found without matching IF');
 					branchExec[branchExec.length - 1] = !branchExec[branchExec.length - 1];
 					break;
-				case OP_ENDIF:
+				case OP_CODES.OP_ENDIF:
 					if (!branchExec.length) throw new Error('ENDIF found without matching IF');
 					branchExec.pop();
 					break;
-				case OP_VERIFY:
+				case OP_CODES.OP_VERIFY:
 					if (!popBool()) throw new Error('OP_VERIFY failed');
 					break;
-				case OP_RETURN:
+				case OP_CODES.OP_RETURN:
 					done = true;
 					break;
-				case OP_TOALTSTACK:
+				case OP_CODES.OP_TOALTSTACK:
 					altStack.push(pop());
 					break;
-				case OP_FROMALTSTACK:
+				case OP_CODES.OP_FROMALTSTACK:
 					stack.push(altpop());
 					break;
-				case OP_IFDUP:
+				case OP_CODES.OP_IFDUP:
 					{
 						const v = pop();
 						stack.push(v);
-						if (v.some((x) => x)) stack.push(Array.from(v));
+						if (v.some((x) => x)) stack.push(new Uint8Array(v));
 					}
 					break;
-				case OP_DEPTH:
+				case OP_CODES.OP_DEPTH:
 					stack.push(encodeNum(BigInt(stack.length)));
 					break;
-				case OP_DROP:
+				case OP_CODES.OP_DROP:
 					pop();
 					break;
-				case OP_DUP:
+				case OP_CODES.OP_DUP:
 					{
 						const v = pop();
 						stack.push(v);
-						stack.push(Array.from(v));
+						stack.push(new Uint8Array(v));
 					}
 					break;
-				case OP_NIP:
+				case OP_CODES.OP_NIP:
 					{
 						const x2 = pop();
 						pop();
 						stack.push(x2);
 					}
 					break;
-				case OP_OVER:
+				case OP_CODES.OP_OVER:
 					{
 						const x2 = pop();
 						const x1 = pop();
 						stack.push(x1, x2, x1);
 					}
 					break;
-				case OP_PICK:
+				case OP_CODES.OP_PICK:
 					{
-						const n = decodeNum(pop());
+						const v = pop();
+						const n = decodeNum(v);
 						if (n.neg || n.num >= stack.length) throw new Error('OP_PICK failed, out of range');
-						stack.push(Array.from(stack[stack.length - Number(n.num) - 1]));
+						stack.push(new Uint8Array(stack[stack.length - Number(n.num) - 1]));
 					}
 					break;
-				case OP_ROLL:
+				case OP_CODES.OP_ROLL:
 					{
-						const n = decodeNum(pop());
+						const v = pop();
+						const n = decodeNum(v);
 						if (n.neg || Number(n.num) >= stack.length) throw new Error('OP_ROLL failed, out of range');
 						stack.push(stack.splice(stack.length - Number(n.num) - 1, 1)[0]);
 					}
 					break;
-				case OP_ROT:
+				case OP_CODES.OP_ROT:
 					{
 						const x3 = pop();
 						const x2 = pop();
@@ -302,32 +306,32 @@ export default function evalScript(
 						stack.push(x2, x3, x1);
 					}
 					break;
-				case OP_SWAP:
+				case OP_CODES.OP_SWAP:
 					{
 						const x2 = pop();
 						const x1 = pop();
 						stack.push(x2, x1);
 					}
 					break;
-				case OP_TUCK:
+				case OP_CODES.OP_TUCK:
 					{
 						const x2 = pop();
 						const x1 = pop();
 						stack.push(x2, x1, x2);
 					}
 					break;
-				case OP_2DROP:
+				case OP_CODES.OP_2DROP:
 					pop();
 					pop();
 					break;
-				case OP_2DUP:
+				case OP_CODES.OP_2DUP:
 					{
 						const x2 = pop();
 						const x1 = pop();
 						stack.push(x1, x2, x1, x2);
 					}
 					break;
-				case OP_3DUP:
+				case OP_CODES.OP_3DUP:
 					{
 						const x3 = pop();
 						const x2 = pop();
@@ -335,7 +339,7 @@ export default function evalScript(
 						stack.push(x1, x2, x3, x1, x2, x3);
 					}
 					break;
-				case OP_2OVER:
+				case OP_CODES.OP_2OVER:
 					{
 						const x4 = pop();
 						const x3 = pop();
@@ -344,7 +348,7 @@ export default function evalScript(
 						stack.push(x1, x2, x3, x4, x1, x2);
 					}
 					break;
-				case OP_2ROT:
+				case OP_CODES.OP_2ROT:
 					{
 						const x6 = pop();
 						const x5 = pop();
@@ -355,7 +359,7 @@ export default function evalScript(
 						stack.push(x3, x4, x5, x6, x1, x2);
 					}
 					break;
-				case OP_2SWAP:
+				case OP_CODES.OP_2SWAP:
 					{
 						const x4 = pop();
 						const x3 = pop();
@@ -364,32 +368,34 @@ export default function evalScript(
 						stack.push(x3, x4, x1, x2);
 					}
 					break;
-				case OP_CAT:
+				case OP_CODES.OP_CAT:
 					{
 						const x2 = pop();
 						const x1 = pop();
-						stack.push(Array.from([...x1, ...x2]));
+						stack.push(new Uint8Array([...x1, ...x2]));
 					}
 					break;
-				case OP_SPLIT:
+				case OP_CODES.OP_SPLIT:
 					{
-						const n = decodeNum(pop());
+						const v = pop();
+						const n = decodeNum(v);
 						const x = pop();
 						if (n.neg || Number(n.num) > x.length) throw new Error('OP_SPLIT failed, out of range');
 						stack.push(x.slice(0, Number(n.num)), x.slice(Number(n.num)));
 					}
 					break;
-				case OP_SIZE:
+				case OP_CODES.OP_SIZE:
 					{
 						const x = pop();
 						stack.push(x);
 						stack.push(encodeNum(x.length));
 					}
 					break;
-				case OP_INVERT:
-					stack.push(pop().map((ai) => ai ^ 0xff));
+				case OP_CODES.OP_INVERT:
+					const v = pop();
+					stack.push(v.map((ai) => ai ^ 0xff));
 					break;
-				case OP_AND:
+				case OP_CODES.OP_AND:
 					{
 						const a = pop();
 						const b = pop();
@@ -397,7 +403,7 @@ export default function evalScript(
 						stack.push(a.map((ai, i) => ai & b[i]));
 					}
 					break;
-				case OP_OR:
+				case OP_CODES.OP_OR:
 					{
 						const a = pop();
 						const b = pop();
@@ -405,7 +411,7 @@ export default function evalScript(
 						stack.push(a.map((ai, i) => ai | b[i]));
 					}
 					break;
-				case OP_XOR:
+				case OP_CODES.OP_XOR:
 					{
 						const a = pop();
 						const b = pop();
@@ -413,7 +419,7 @@ export default function evalScript(
 						stack.push(a.map((ai, i) => ai ^ b[i]));
 					}
 					break;
-				case OP_EQUAL:
+				case OP_CODES.OP_EQUAL:
 					{
 						const a = pop();
 						const b = pop();
@@ -421,72 +427,76 @@ export default function evalScript(
 						stack.push(encodeNum(equal ? 1 : 0));
 					}
 					break;
-				case OP_EQUALVERIFY:
+				case OP_CODES.OP_EQUALVERIFY:
 					{
 						const a = pop();
 						const b = pop();
 						const equal = a.length === b.length && !a.some((ai, i) => ai !== b[i]);
-						if (!equal) throw new Error('\'OP_EQUALVERIFY failed"');
+						if (!equal) throw new Error('OP_EQUALVERIFY failed');
 					}
 					break;
-				case OP_LSHIFT:
+				case OP_CODES.OP_LSHIFT:
 					{
 						const n = decodeNum(pop());
 						if (n.neg) throw new Error('OP_LSHIFT failed, n negative');
 						stack.push(lshift(pop(), Number(n.num)));
 					}
 					break;
-				case OP_RSHIFT:
+				case OP_CODES.OP_RSHIFT:
 					{
 						const n = decodeNum(pop());
 						if (n.neg) throw new Error('OP_RSHIFT failed, n negative');
 						stack.push(rshift(pop(), Number(n.num)));
 					}
 					break;
-				case OP_1ADD:
-					stack.push(encodeNum(addNum(decodeNum(pop()), { num: BigInt(1), neg: false })));
+				case OP_CODES.OP_1ADD:
+					const num1 = addNum(decodeNum(pop()), { num: BigInt(1), neg: false });
+					stack.push(encodeNum(num1.num, num1.neg));
 					break;
-				case OP_1SUB:
-					stack.push(encodeNum(addNum(decodeNum(pop()), { num: BigInt(1), neg: true })));
+				case OP_CODES.OP_1SUB:
+					const num2 = addNum(decodeNum(pop()), { num: BigInt(1), neg: true });
+					stack.push(encodeNum(num2.num, num2.neg));
 					break;
-				case OP_NEGATE:
+				case OP_CODES.OP_NEGATE:
 					{
 						const n = decodeNum(pop());
-						stack.push(encodeNum({ num: n.num, neg: !n.neg }));
+						stack.push(encodeNum(n.num, !n.neg));
 					}
 					break;
-				case OP_ABS:
+				case OP_CODES.OP_ABS:
 					{
 						const n = decodeNum(pop());
 						stack.push(encodeNum(n.num));
 					}
 					break;
-				case OP_NOT:
+				case OP_CODES.OP_NOT:
 					{
 						const n = decodeNum(pop());
 						stack.push(n.num === BigInt(0) ? encodeNum(1) : encodeNum(0));
 					}
 					break;
-				case OP_0NOTEQUAL:
+				case OP_CODES.OP_0NOTEQUAL:
 					{
 						const n = decodeNum(pop());
 						stack.push(n.num === BigInt(0) ? encodeNum(0) : encodeNum(1));
 					}
 					break;
-				case OP_ADD:
-					stack.push(encodeNum(addNum(decodeNum(pop()), decodeNum(pop()))));
+				case OP_CODES.OP_ADD:
+					const n = addNum(decodeNum(pop()), decodeNum(pop()));
+					stack.push(encodeNum(n.num, n.neg));
 					break;
-				case OP_SUB:
-					stack.push(encodeNum(subNum(decodeNum(pop()), decodeNum(pop()))));
+				case OP_CODES.OP_SUB:
+					const m = subNum(decodeNum(pop()), decodeNum(pop()));
+					stack.push(encodeNum(m.num, m.neg));
 					break;
-				case OP_MUL:
+				case OP_CODES.OP_MUL:
 					{
 						const b = decodeNum(pop());
 						const a = decodeNum(pop());
 						stack.push(encodeNum(a.num * b.num, a.neg !== b.neg));
 					}
 					break;
-				case OP_DIV:
+				case OP_CODES.OP_DIV:
 					{
 						const b = decodeNum(pop());
 						const a = decodeNum(pop());
@@ -494,7 +504,7 @@ export default function evalScript(
 						stack.push(encodeNum(a.num / b.num, a.neg !== b.neg));
 					}
 					break;
-				case OP_MOD:
+				case OP_CODES.OP_MOD:
 					{
 						const b = decodeNum(pop());
 						const a = decodeNum(pop());
@@ -502,68 +512,70 @@ export default function evalScript(
 						stack.push(encodeNum(a.num % b.num, a.neg));
 					}
 					break;
-				case OP_BOOLAND:
+				case OP_CODES.OP_BOOLAND:
 					{
 						const a = popBool();
 						const b = popBool();
 						stack.push(encodeNum(a && b ? 1 : 0));
 					}
 					break;
-				case OP_BOOLOR:
+				case OP_CODES.OP_BOOLOR:
 					{
 						const a = popBool();
 						const b = popBool();
 						stack.push(encodeNum(a || b ? 1 : 0));
 					}
 					break;
-				case OP_NUMEQUAL:
+				case OP_CODES.OP_NUMEQUAL:
 					{
 						const b = decodeNum(pop());
 						const a = decodeNum(pop());
 						stack.push(encodeNum(a.num === b.num && a.neg === b.neg ? 1 : 0));
 					}
 					break;
-				case OP_NUMEQUALVERIFY:
+				case OP_CODES.OP_NUMEQUALVERIFY:
 					{
 						const b = decodeNum(pop());
 						const a = decodeNum(pop());
 						if (a.num !== b.num || a.neg !== b.neg) throw new Error('OP_NUMEQUALVERIFY failed');
 					}
 					break;
-				case OP_NUMNOTEQUAL:
+				case OP_CODES.OP_NUMNOTEQUAL:
 					{
 						const b = decodeNum(pop());
 						const a = decodeNum(pop());
 						stack.push(encodeNum(a.num !== b.num || a.neg !== b.neg ? 1 : 0));
 					}
 					break;
-				case OP_LESSTHAN:
+				case OP_CODES.OP_LESSTHAN:
 					stack.push(encodeNum(lessThan(decodeNum(pop()), decodeNum(pop())) ? 1 : 0));
 					break;
-				case OP_GREATERTHAN:
+				case OP_CODES.OP_GREATERTHAN:
 					stack.push(encodeNum(greaterThan(decodeNum(pop()), decodeNum(pop())) ? 1 : 0));
 					break;
-				case OP_LESSTHANOREQUAL:
+				case OP_CODES.OP_LESSTHANOREQUAL:
 					stack.push(encodeNum(lessThanOrEqual(decodeNum(pop()), decodeNum(pop())) ? 1 : 0));
 					break;
-				case OP_GREATERTHANOREQUAL:
+				case OP_CODES.OP_GREATERTHANOREQUAL:
 					stack.push(encodeNum(greaterThanOrEqual(decodeNum(pop()), decodeNum(pop())) ? 1 : 0));
 					break;
-				case OP_MIN:
+				case OP_CODES.OP_MIN:
 					{
 						const b = decodeNum(pop());
 						const a = decodeNum(pop());
-						stack.push(encodeNum(lessThan(b, a) ? a : b));
+						const n = lessThan(b, a) ? a : b;
+						stack.push(encodeNum(n.num, n.neg));
 					}
 					break;
-				case OP_MAX:
+				case OP_CODES.OP_MAX:
 					{
 						const b = decodeNum(pop());
 						const a = decodeNum(pop());
-						stack.push(encodeNum(greaterThan(b, a) ? a : b));
+						const n = greaterThan(b, a) ? a : b;
+						stack.push(encodeNum(n.num, n.neg));
 					}
 					break;
-				case OP_WITHIN:
+				case OP_CODES.OP_WITHIN:
 					{
 						const max = decodeNum(pop());
 						const min = decodeNum(pop());
@@ -571,10 +583,11 @@ export default function evalScript(
 						stack.push(encodeNum(greaterThanOrEqual(min, x) && lessThan(max, x) ? 1 : 0));
 					}
 					break;
-				case OP_BIN2NUM:
-					stack.push(encodeNum(decodeNum(pop())));
+				case OP_CODES.OP_BIN2NUM:
+					const num = decodeNum(pop());
+					stack.push(encodeNum(num.num, num.neg));
 					break;
-				case OP_NUM2BIN:
+				case OP_CODES.OP_NUM2BIN:
 					{
 						const m = decodeNum(pop());
 						const narr = pop();
@@ -589,31 +602,31 @@ export default function evalScript(
 						if (n.neg) {
 							arr[arr.length - 1] |= n.neg ? 0x80 : 0x00;
 						}
-						stack.push(arr);
+						stack.push(new Uint8Array(arr));
 					}
 					break;
-				case OP_RIPEMD160:
+				case OP_CODES.OP_RIPEMD160:
 					if (async) {
 						return ripemd160Async(pop()).then((x) => stack.push(x));
 					} else {
 						stack.push(ripemd160(pop()));
 						return;
 					}
-				case OP_SHA1:
+				case OP_CODES.OP_SHA1:
 					if (async) {
 						return sha1Async(pop()).then((x) => stack.push(x));
 					} else {
 						stack.push(sha1(pop()));
 						return;
 					}
-				case OP_SHA256:
+				case OP_CODES.OP_SHA256:
 					if (async) {
 						return sha256Async(pop()).then((x) => stack.push(x));
 					} else {
 						stack.push(sha256(pop()));
 						return;
 					}
-				case OP_HASH160:
+				case OP_CODES.OP_HASH160:
 					if (async) {
 						return sha256Async(pop())
 							.then((x) => ripemd160Async(x))
@@ -622,7 +635,7 @@ export default function evalScript(
 						stack.push(ripemd160(sha256(pop())));
 						return;
 					}
-				case OP_HASH256:
+				case OP_CODES.OP_HASH256:
 					if (async) {
 						return sha256Async(pop())
 							.then((x) => sha256Async(x))
@@ -631,19 +644,19 @@ export default function evalScript(
 						stack.push(sha256(sha256(pop())));
 						return;
 					}
-				case OP_CODESEPARATOR:
+				case OP_CODES.OP_CODESEPARATOR:
 					checkIndex = i + 1;
 					break;
-				case OP_CHECKSIG:
-				case OP_CHECKSIGVERIFY:
+				case OP_CODES.OP_CHECKSIG:
+				case OP_CODES.OP_CHECKSIGVERIFY:
 					{
 						const pubkeybytes = pop();
 						const pubkey = decodePublicKey(pubkeybytes);
 						const signature = pop();
 						const cleanedScript = lockScript.slice(checkIndex);
 
-						const check = (verified) => {
-							if (chunk.opcode === OP_CHECKSIG) {
+						const check = (verified: boolean) => {
+							if (chunk.opcode === OP_CODES.OP_CHECKSIG) {
 								stack.push(encodeNum(verified ? 1 : 0));
 							} else {
 								if (!verified) throw new Error('OP_CHECKSIGVERIFY failed');
@@ -664,8 +677,8 @@ export default function evalScript(
 						}
 					}
 					break;
-				case OP_CHECKMULTISIG:
-				case OP_CHECKMULTISIGVERIFY:
+				case OP_CODES.OP_CHECKMULTISIG:
+				case OP_CODES.OP_CHECKMULTISIGVERIFY:
 					{
 						// Pop the keys
 						const total = decodeNum(pop());
@@ -694,8 +707,8 @@ export default function evalScript(
 						let success = true;
 						const cleanedScript = lockScript.slice(checkIndex);
 
-						const check = (success) => {
-							if (chunk.opcode === OP_CHECKMULTISIG) {
+						const check = (success: boolean) => {
+							if (chunk.opcode === OP_CODES.OP_CHECKMULTISIG) {
 								stack.push(encodeNum(success ? 1 : 0));
 							} else {
 								if (!success) throw new Error('OP_CHECKMULTISIGVERIFY failed');
@@ -747,25 +760,25 @@ export default function evalScript(
 						}
 					}
 					break;
-				case OP_NOP1:
+				case OP_CODES.OP_NOP1:
 					break;
-				case OP_NOP2:
+				case OP_CODES.OP_NOP2:
 					break;
-				case OP_NOP3:
+				case OP_CODES.OP_NOP3:
 					break;
-				case OP_NOP4:
+				case OP_CODES.OP_NOP4:
 					break;
-				case OP_NOP5:
+				case OP_CODES.OP_NOP5:
 					break;
-				case OP_NOP6:
+				case OP_CODES.OP_NOP6:
 					break;
-				case OP_NOP7:
+				case OP_CODES.OP_NOP7:
 					break;
-				case OP_NOP8:
+				case OP_CODES.OP_NOP8:
 					break;
-				case OP_NOP9:
+				case OP_CODES.OP_NOP9:
 					break;
-				case OP_NOP10:
+				case OP_CODES.OP_NOP10:
 					break;
 				default:
 					throw new Error(`reserved opcode: ${chunk.opcode}`);
@@ -778,7 +791,8 @@ export default function evalScript(
 					while (i < chunks.length && !done) await step();
 					return finish();
 				} catch (e) {
-					const vm = finish(e);
+					const err = e instanceof Error ? e : null;
+					const vm = finish(err);
 					return Promise.resolve(vm);
 				}
 			})();
@@ -787,19 +801,20 @@ export default function evalScript(
 			return finish();
 		}
 	} catch (e) {
-		const vm = finish(e);
+		const err = e instanceof Error ? e : null;
+		const vm = finish(err);
 		return async ? Promise.resolve(vm) : vm;
 	}
 }
 
 const LSHIFT_MASK = [0xff, 0x7f, 0x3f, 0x1f, 0x0f, 0x07, 0x03, 0x01];
 
-function lshift(arr, n) {
+function lshift(arr: Uint8Array, n: number) {
 	const bitshift = n % 8;
 	const byteshift = Math.floor(n / 8);
 	const mask = LSHIFT_MASK[bitshift];
 	const overflowmask = mask ^ 0xff;
-	const result = Array.from(arr.length).fill(0);
+	const result: number[] = new Array(arr.length).fill(0);
 	for (let i = arr.length - 1; i >= 0; i--) {
 		const k = i - byteshift;
 		if (k >= 0) {
@@ -813,12 +828,12 @@ function lshift(arr, n) {
 			result[k - 1] |= carryval;
 		}
 	}
-	return result;
+	return new Uint8Array(result);
 }
 
 const RSHIFT_MASK = [0xff, 0xfe, 0xfc, 0xf8, 0xf0, 0xe0, 0xc0, 0x80];
 
-function rshift(arr, n) {
+function rshift(arr: Uint8Array, n: number) {
 	const bitshift = n % 8;
 	const byteshift = Math.floor(n / 8);
 	const mask = RSHIFT_MASK[bitshift];
@@ -837,5 +852,5 @@ function rshift(arr, n) {
 			result[k + 1] |= carryval;
 		}
 	}
-	return result;
+	return new Uint8Array(result);
 }

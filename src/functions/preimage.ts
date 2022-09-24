@@ -6,9 +6,8 @@ import decodeHex from './decode-hex';
 import sha256d from './sha256d';
 import sha256Async from './sha256-async';
 import Transaction from 'classes/transaction';
-import { ByteArray } from 'types/general';
 
-export default function preimage(
+export default async function preimage(
 	tx: Transaction,
 	vin: number,
 	parentScript: Uint8Array,
@@ -23,7 +22,7 @@ export default function preimage(
 	const SIGHASH_SINGLE = 0x03;
 	const SIGHASH_ANYONECANPAY = 0x80;
 
-	function getPrevoutsHash() {
+	async function getPrevoutsHash() {
 		if (tx._hashPrevouts) return tx._hashPrevouts;
 		const writer = new BufferWriter();
 		tx.inputs.forEach((input) => {
@@ -31,40 +30,43 @@ export default function preimage(
 			writeU32LE(writer, input.vout);
 		});
 		const preimage = writer.toBuffer();
-		tx._hashPrevouts = async ? sha256Async(preimage).then(sha256Async) : sha256d(preimage);
-		return tx._hashPrevouts;
+		const hashPrevouts = async ? await sha256Async(preimage).then(sha256Async) : sha256d(preimage);
+		tx._hashPrevouts = hashPrevouts;
+		return hashPrevouts;
 	}
 
-	function getSequenceHash() {
+	async function getSequenceHash() {
 		if (tx._hashSequence) return tx._hashSequence;
 		const writer = new BufferWriter();
 		tx.inputs.forEach((input) => {
 			writeU32LE(writer, typeof input.sequence === 'undefined' ? 0xffffffff : input.sequence);
 		});
 		const preimage = writer.toBuffer();
-		tx._hashSequence = async ? sha256Async(preimage).then(sha256Async) : sha256d(preimage);
-		return tx._hashSequence;
+		const hashSequence = async ? await sha256Async(preimage).then(sha256Async) : sha256d(preimage);
+		tx._hashSequence = hashSequence;
+		return hashSequence;
 	}
 
-	function getAllOutputsHash() {
+	async function getAllOutputsHash() {
 		if (tx._hashOutputsAll) return tx._hashOutputsAll;
 		const writer = new BufferWriter();
 		outputs.forEach((output) => {
 			writeU64LE(writer, output.satoshis);
 			writeVarint(writer, output.script.length);
-			writer.write(output.script);
+			writer.write(output.script.buffer);
 		});
 		const preimage = writer.toBuffer();
-		tx._hashOutputsAll = async ? sha256Async(preimage).then(sha256Async) : sha256d(preimage);
-		return tx._hashOutputsAll;
+		const hashOutputsAll = async ? await sha256Async(preimage).then(sha256Async) : sha256d(preimage);
+		tx._hashOutputsAll = hashOutputsAll;
+		return hashOutputsAll;
 	}
 
-	function getOutputHash(n) {
+	function getOutputHash(n: number) {
 		const output = outputs[n];
 		const writer = new BufferWriter();
 		writeU64LE(writer, output.satoshis);
 		writeVarint(writer, output.script.length);
-		writer.write(output.script);
+		writer.write(output.script.buffer);
 		const preimage = writer.toBuffer();
 		return async ? sha256Async(preimage).then(sha256Async) : sha256d(preimage);
 	}
@@ -74,7 +76,7 @@ export default function preimage(
 	let hashOutputs = new Uint8Array(32);
 
 	if (!(sighashFlags & SIGHASH_ANYONECANPAY)) {
-		hashPrevouts = getPrevoutsHash();
+		hashPrevouts = await getPrevoutsHash();
 	}
 
 	if (
@@ -82,13 +84,13 @@ export default function preimage(
 		(sighashFlags & 0x1f) !== SIGHASH_SINGLE &&
 		(sighashFlags & 0x1f) !== SIGHASH_NONE
 	) {
-		hashSequence = getSequenceHash();
+		hashSequence = await getSequenceHash();
 	}
 
 	if ((sighashFlags & 0x1f) !== SIGHASH_SINGLE && (sighashFlags & 0x1f) !== SIGHASH_NONE) {
-		hashOutputs = getAllOutputsHash();
+		hashOutputs = await getAllOutputsHash();
 	} else if ((sighashFlags & 0x1f) === SIGHASH_SINGLE && vin < outputs.length) {
-		hashOutputs = getOutputHash(vin);
+		hashOutputs = await getOutputHash(vin);
 	}
 
 	function getPreimage(hashPrevouts: Uint8Array, hashSequence: Uint8Array, hashOutputs: Uint8Array) {

@@ -25,6 +25,6 @@ export default function verifyTx(tx: Transaction, parents: ParentTx[], minFeePer
 	});
 
 	tx.inputs.forEach((input, vin) => {
-		verifyScript(input.script, parents[vin].script, tx, vin, parents[vin].satoshis);
+		verifyScript(input.script.buffer, parents[vin].script.buffer, tx, vin, parents[vin].satoshis);
 	});
 }

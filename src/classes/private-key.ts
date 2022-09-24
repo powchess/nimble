@@ -5,6 +5,7 @@ import decodeWIF from '../functions/decode-wif';
 import isBuffer from '../functions/is-buffer';
 import verifyPrivateKey from '../functions/verify-private-key';
 import PublicKey from './public-key';
+import nimble from '../../index';
 
 // These WeakMap caches allow the objects themselves to maintain their immutability
 const PRIVATE_KEY_TO_WIF_CACHE = new WeakMap(); // Cached to reduce sha256
@@ -36,7 +37,7 @@ export default class PrivateKey {
 		return privateKey;
 	}
 
-	static fromRandom(testnet: boolean = require('../index').testnet): PrivateKey {
+	static fromRandom(testnet: boolean = nimble.testnet): PrivateKey {
 		const number = generatePrivateKey();
 		const compressed = true;
 		return new PrivateKey(number, testnet, compressed, false);

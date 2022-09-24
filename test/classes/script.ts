@@ -34,51 +34,6 @@ describe('Script', () => {
 				expect(byte).toBe(expected.shift());
 			}
 		});
-
-		test('detects p2pkh lockscript template', () => {
-			const address = nimble.PrivateKey.fromRandom().toAddress();
-			const script = new Script(nimble.functions.createP2PKHLockScript(address.pubkeyhash));
-			expect(script instanceof Script.templates.P2PKHLockScript).toBe(true);
-		});
-
-		test('detects custom script templates', () => {
-			class CustomScript extends Script {
-				static matches(buffer: Uint8Array) {
-					return buffer[0] === 0xab;
-				}
-			}
-			Script.templates.CustomScript = CustomScript;
-			expect(new Script([0xab]) instanceof CustomScript).toBe(true);
-			expect(new Script([0x00]) instanceof CustomScript).toBe(false);
-			delete Script.templates.CustomScript;
-		});
-
-		test('create from matching template', () => {
-			const address = nimble.PrivateKey.fromRandom().toAddress();
-			const buffer = nimble.functions.createP2PKHLockScript(address.pubkeyhash);
-			const script = Script.templates.P2PKHLockScript.fromBuffer(buffer);
-			expect(script instanceof Script.templates.P2PKHLockScript).toBe(true);
-		});
-
-		test('throws if create from non-matching template', () => {
-			expect(() => new Script.templates.P2PKHLockScript([])).toThrow('not a P2PKHLockScript');
-		});
-
-		test('throws if template has constructor', () => {
-			class CustomScript extends Script {
-				constructor(buffer: Uint8Array) {
-					super(buffer);
-					this.prefix = buffer[0];
-				}
-				static matches(buffer: Uint8Array) {
-					return buffer[0] === 0xab;
-				}
-			}
-			Script.templates.CustomScript = CustomScript;
-			expect(() => new CustomScript(new Uint8Array([0xab]))).toThrow('template constructors not allowed');
-			expect(() => new Script(new Uint8Array([0xab]))).toThrow('template constructors not allowed');
-			delete Script.templates.CustomScript;
-		});
 	});
 
 	describe('fromString', () => {
@@ -227,23 +182,23 @@ describe('Script', () => {
 		describe('fromAddress', () => {
 			test('creates', () => {
 				const address = nimble.PrivateKey.fromRandom().toAddress();
-				const script = Script.templates.P2PKHLockScript.fromAddress(address);
+				const script = Script.fromAddress(address);
 				expect(Array.from(script.buffer)).toEqual(
 					Array.from(nimble.functions.createP2PKHLockScript(address.pubkeyhash))
 				);
 			});
 
 			test('throws if not an address', () => {
-				expect(() => Script.templates.P2PKHLockScript.fromAddress()).toThrow();
-				expect(() => Script.templates.P2PKHLockScript.fromAddress('abc')).toThrow();
-				expect(() => Script.templates.P2PKHLockScript.fromAddress({})).toThrow();
+				expect(() => Script.fromAddress()).toThrow();
+				expect(() => Script.fromAddress('abc')).toThrow();
+				expect(() => Script.fromAddress({})).toThrow();
 			});
 		});
 
 		describe('toAddress', () => {
 			test('returns address for current network', () => {
 				const address = nimble.PrivateKey.fromRandom().toAddress();
-				const script = Script.templates.P2PKHLockScript.fromAddress(address);
+				const script = Script.fromAddress(address);
 				expect(script.toAddress().toString()).toBe(address.toString());
 			});
 		});

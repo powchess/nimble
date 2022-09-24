@@ -1,5 +1,6 @@
 import VARIANT from 'constants/variant';
 import { checkAvailableMemory, getSha1, getMemoryBuffer } from '../wasm/wasm-hashes';
+import { createHash } from 'crypto';
 
 let sha1: (data: Uint8Array) => Uint8Array;
 
@@ -23,7 +24,7 @@ if (typeof VARIANT === 'undefined' || VARIANT === 'browser') {
 	};
 } else {
 	sha1 = (data) => {
-		const hash = require('crypto').createHash('sha1');
+		const hash = createHash('sha1');
 		hash.update(new Uint8Array(data));
 		return hash.digest();
 	};

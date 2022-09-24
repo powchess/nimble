@@ -1,5 +1,6 @@
 import VARIANT from 'constants/variant';
 import { getMemoryBuffer, getSha256, checkAvailableMemory } from '../wasm/wasm-hashes';
+import sha256 from './sha256';
 
 let sha256d: (data: Uint8Array) => Uint8Array;
 
@@ -22,7 +23,6 @@ if (typeof VARIANT === 'undefined' || VARIANT === 'browser') {
 		return new Uint8Array(wasmMemory.slice(hashOutPos2, hashOutPos2 + 32));
 	};
 } else {
-	const sha256 = require('./sha256');
 	sha256d = (data) => sha256(sha256(data));
 }
 

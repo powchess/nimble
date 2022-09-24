@@ -12,11 +12,14 @@ function verifyScript(
 	const vm = evalScript(unlockScript, lockScript, tx, vin, parentSatoshis, { async, trace: false });
 
 	if (async) {
+		// @ts-ignore
 		return vm.then((vm) => {
 			return vm.error ? Promise.reject(vm.error) : vm.success;
 		});
 	} else {
+		// @ts-ignore
 		if (vm.error) throw vm.error;
+		// @ts-ignore
 		return vm.success;
 	}
 }

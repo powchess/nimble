@@ -59,6 +59,6 @@ export default class Address {
 	}
 
 	toScript() {
-		return Script.templates.P2PKHLockScript.fromAddress(this);
+		return Script.fromAddress(this);
 	}
 }

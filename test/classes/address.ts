@@ -139,7 +139,6 @@ describe('Address', () => {
 		test('returns p2pkh lock script', () => {
 			const address = PrivateKey.fromRandom().toAddress();
 			const script = address.toScript();
-			expect(script instanceof Script.templates.P2PKHLockScript).toBe(true);
 			expect(Array.from(script.toBuffer())).toEqual(Array.from(createP2PKHLockScript(address.pubkeyhash)));
 		});
 	});

@@ -1,6 +1,5 @@
 import sha256Async from './sha256-async';
 import Transaction from 'classes/transaction';
-import { ByteArray } from 'types/general';
 import preimageAsync from './preimage-async';
 
 async function sighashAsync(

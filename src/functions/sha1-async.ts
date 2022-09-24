@@ -1,4 +1,6 @@
 import VARIANT from 'constants/variant';
+import asyncify from './asyncify';
+import sha1 from './sha1';
 
 const subtleCrypto = typeof window !== 'undefined' && window.crypto && window.crypto.subtle;
 
@@ -9,9 +11,6 @@ if (typeof VARIANT !== 'undefined' && VARIANT === 'browser' && subtleCrypto) {
 		return new Uint8Array(await subtleCrypto.digest('SHA-1', new Uint8Array(data)));
 	};
 } else {
-	const asyncify = require('./asyncify');
-	const sha1 = require('./sha1');
-
 	sha1Async = asyncify(sha1);
 }
 

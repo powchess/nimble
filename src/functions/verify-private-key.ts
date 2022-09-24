@@ -5,7 +5,7 @@ function verifyPrivateKey(privateKey: Uint8Array): Uint8Array {
 
 	const memory = getMemoryBuffer();
 	const privateKeyPos = memory.length - BN_SIZE;
-	const bnCmp = getBnExports().bn_cmp;
+	const bnCmp = getBnExports().bn_cmp as CallableFunction;
 	const N_POS = getNPos();
 
 	writeBN(memory, privateKeyPos, privateKey);

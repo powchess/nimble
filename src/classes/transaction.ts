@@ -17,6 +17,7 @@ import Script from './script';
 import BufferWriter from './buffer-writer';
 import isBuffer from '../functions/is-buffer';
 import verifyTx from '../functions/verify-tx';
+import nimble from '../../index';
 
 // These WeakMap caches allow the objects themselves to maintain their immutability
 const TRANSACTION_TO_TXID_CACHE = new WeakMap();
@@ -29,18 +30,20 @@ export default class Transaction {
 	feePerKb: number;
 	changeOutput: Output | undefined;
 
+	_hashPrevouts: Uint8Array | undefined;
+	_hashSequence: Uint8Array | undefined;
+	_hashOutputsAll: Uint8Array | undefined;
+
 	Input = Input;
 	Output = Output;
 
-	constructor(...args: any) {
-		if (args.length) throw new Error('use Transaction.fromHex() to parse a transaction');
-
+	constructor() {
 		// This basic data structure matches what the functions encodeTx and decodeTx expect
 		this.version = 1;
 		this.inputs = [];
 		this.outputs = [];
 		this.locktime = 0;
-		this.feePerKb = require('../index').feePerKb;
+		this.feePerKb = nimble.feePerKb;
 
 		// An actual output object matching an entry in this.outputs
 		this.changeOutput = undefined;
@@ -105,15 +108,22 @@ export default class Transaction {
 		return satoshisIn - satoshisOut;
 	}
 
-	from(output: Output) {
+	from(output: Output | Output[], tx: Transaction | Transaction[]) {
 		if (Object.isFrozen(this)) throw new Error('transaction finalized');
 
 		if (Array.isArray(output)) {
-			output.forEach((output) => this.from(output));
+			output.forEach((output) => this.from(output, tx));
 			return this;
 		}
 
-		const input = new Input(output.txid, output.vout, new Uint8Array([]), 0xffffffff, output);
+		const transactions = Array.isArray(tx) ? tx : [tx];
+		const transaction = transactions.find((tx) => tx.outputs.indexOf(output) >= 0);
+		if (!transaction) return this;
+
+		const vout = transaction.outputs.indexOf(output);
+		const txid = transaction.hash;
+
+		const input = new Input(txid, vout, new Uint8Array([]), 0xffffffff, output);
 		this.inputs.push(input);
 
 		return this;
@@ -126,44 +136,21 @@ export default class Transaction {
 		verifySatoshis(satoshis);
 
 		const script = createP2PKHLockScript(address.pubkeyhash);
-		const output = new Output(script, satoshis, this);
+		const output = new Output(script, satoshis);
 		this.outputs.push(output);
 
 		return this;
 	}
 
-	input(
-		input:
-			| Input
-			| { txid?: string; vout?: number; output: Output; script?: Script | string | Uint8Array; sequence?: number }
-	) {
+	input(input: Input) {
 		if (Object.isFrozen(this)) throw new Error('transaction finalized');
-		if (typeof input !== 'object' || !input) throw new Error('bad input');
-
-		input =
-			input instanceof Input
-				? input
-				: new Input(
-						typeof input.txid === 'undefined' && input.output ? input.output.txid : input.txid,
-						typeof input.vout === 'undefined' && input.output ? input.output.vout : input.vout,
-						input.script,
-						input.sequence,
-						input.output
-				  );
-
 		this.inputs.push(input);
-
 		return this;
 	}
 
-	output(output: Output | { script: string | Uint8Array | Script; satoshis: number }) {
+	output(output: Output) {
 		if (Object.isFrozen(this)) throw new Error('transaction finalized');
-
-		output = output instanceof Output ? output : new Output(output.script, output.satoshis, this);
-		output.tx = this;
-
 		this.outputs.push(output);
-
 		return this;
 	}
 
@@ -173,7 +160,7 @@ export default class Transaction {
 		if (this.changeOutput) throw new Error('change output already added');
 
 		const script = createP2PKHLockScript(Address.from(address).pubkeyhash);
-		const output = new Output(script, 0, this);
+		const output = new Output(script, 0);
 
 		this.outputs.push(output);
 		this.changeOutput = output;
@@ -200,14 +187,19 @@ export default class Transaction {
 			const outputScript = output.script;
 			const outputSatoshis = output.satoshis;
 
-			if (!isP2PKHLockScript(output.script)) continue;
-			if (!areBuffersEqual(extractP2PKHLockScriptPubkeyhash(output.script), privateKey.toAddress().pubkeyhash))
+			if (!isP2PKHLockScript(output.script.buffer)) continue;
+			if (
+				!areBuffersEqual(
+					extractP2PKHLockScriptPubkeyhash(output.script.buffer),
+					privateKey.toAddress().pubkeyhash
+				)
+			)
 				continue;
 
 			const txsignature = generateTxSignature(
 				this,
 				vin,
-				outputScript,
+				outputScript.buffer,
 				outputSatoshis,
 				privateKey.number,
 				privateKey.toPublicKey().point
@@ -285,14 +277,14 @@ export class Input {
 	vout: number;
 	script: Script;
 	sequence: number;
-	output: Output | undefined;
+	output: Output;
 
 	constructor(
 		txid: string,
 		vout: number,
 		script: Script | Uint8Array | string = new Uint8Array([]),
 		sequence = 0,
-		output?: Output | { script: Script | Uint8Array | string; satoshis: number }
+		output: Output
 	) {
 		if (!isHex(txid) || txid.length !== 64) throw new Error(`bad txid: ${txid}`);
 		if (!Number.isInteger(vout) || vout < 0) throw new Error(`bad vout: ${vout}`);
@@ -301,31 +293,17 @@ export class Input {
 		this.vout = vout;
 		this.script = Script.from(script);
 		this.sequence = verifySequence(sequence);
-
-		if (output instanceof Output) {
-			this.output = output;
-		} else if (typeof output === 'object' && output) {
-			this.output = new Output(output.script, output.satoshis);
-		}
+		this.output = output;
 	}
 }
 
 export class Output {
 	script: Script;
 	satoshis: number;
-	tx: Transaction | undefined;
 
-	constructor(script: Script | Uint8Array | string, satoshis: number, tx?: Transaction) {
+	constructor(script: Script | Uint8Array | string, satoshis: number) {
 		this.script = Script.from(script);
 		this.satoshis = verifySatoshis(satoshis);
-		this.tx = tx;
-	}
-
-	get txid() {
-		return this.tx?.hash;
-	}
-	get vout() {
-		return this.tx?.outputs.indexOf(this);
 	}
 }
 

@@ -16,14 +16,14 @@ describe('encodeTx', () => {
 					new bsv.Transaction.Input({
 						prevTxId: Buffer.from(input.txid, 'hex').reverse(),
 						outputIndex: input.vout,
-						script: Buffer.from(input.script).toString('hex'),
+						script: Buffer.from(input.script.buffer).toString('hex'),
 						sequenceNumber: input.sequence,
 					})
 			);
 			bsvtx.outputs = tx.outputs.map(
 				(output) =>
 					new bsv.Transaction.Output({
-						script: Buffer.from(output.script).toString('hex'),
+						script: Buffer.from(output.script.buffer).toString('hex'),
 						satoshis: output.satoshis,
 					})
 			);

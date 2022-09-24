@@ -8,7 +8,8 @@ import isBuffer from '../functions/is-buffer';
 import encodeASM from '../functions/encode-asm';
 import decodeASM from '../functions/decode-asm';
 import Address from './address';
-import PublicKey from './private-key';
+import PublicKey from './public-key';
+import nimble from '../../index';
 
 // These WeakMap caches allow the objects themselves to maintain their immutability
 const SCRIPT_TO_CHUNKS_CACHE = new WeakMap();
@@ -21,21 +22,6 @@ export default class Script {
 
 		this.buffer = buffer;
 
-		const isTemplate = this.constructor !== Script;
-		if (isTemplate) {
-			// If we are using a template, make sure it matches, and that there is no custom constructor
-			if (!this.constructor.matches(buffer)) throw new Error(`not a ${this.constructor.name}`);
-			if (this.constructor.toString().includes('constructor'))
-				throw new Error('template constructors not allowed');
-		} else {
-			// If we are not using a template, see if we can detect one
-			const T = Object.values(Script.templates).find((template) => template.matches(buffer));
-			if (T) {
-				if (T.toString().includes('constructor')) throw new Error('template constructors not allowed');
-				Object.setPrototypeOf(this, T.prototype);
-			}
-		}
-
 		// Make the script class immutable, in part so that its safe to cache chunks
 		// We can't freeze the underlying buffer unfortunately because of a limitation in JS, and copying to
 		// an object we can freeze, like Array, is too slow. https://github.com/tc39/proposal-limited-arraybuffer
@@ -45,7 +31,7 @@ export default class Script {
 		return new Proxy(this, {
 			get: (target, prop, receiver) => {
 				if (prop === Symbol.iterator) return target.buffer[Symbol.iterator].bind(target.buffer);
-				if (typeof prop !== 'symbol' && Number.isInteger(parseInt(prop))) return target.buffer[prop];
+				if (typeof prop !== 'symbol' && Number.isInteger(parseInt(prop))) return target.buffer[parseInt(prop)];
 				return Reflect.get(target, prop, receiver);
 			},
 		});
@@ -108,21 +94,16 @@ export default class Script {
 		SCRIPT_TO_CHUNKS_CACHE.set(this, chunks);
 		return chunks;
 	}
-}
 
-class P2PKHLockScript extends Script {
 	static matches(buffer: Uint8Array) {
 		return isP2PKHLockScript(buffer);
 	}
 
 	static fromAddress(address: Address | PublicKey | string) {
-		return new P2PKHLockScript(createP2PKHLockScript(Address.from(address).pubkeyhash));
+		return new Script(createP2PKHLockScript(Address.from(address).pubkeyhash));
 	}
 
 	toAddress() {
-		return new Address(extractP2PKHLockScriptPubkeyhash(this.buffer), require('../index').testnet);
+		return new Address(extractP2PKHLockScriptPubkeyhash(this.buffer), nimble.testnet);
 	}
 }
-
-// Further templates may be added at runtime
-Script.templates = { P2PKHLockScript };

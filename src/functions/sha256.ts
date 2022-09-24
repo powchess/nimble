@@ -1,6 +1,7 @@
 import VARIANT from 'constants/variant';
 import { getMemoryBuffer } from 'wasm/wasm-secp256k1';
 import { checkAvailableMemory, getSha256 } from '../wasm/wasm-hashes';
+import { createHash } from 'crypto';
 
 let sha256: (data: Uint8Array) => Uint8Array;
 
@@ -24,7 +25,7 @@ if (typeof VARIANT === 'undefined' || VARIANT === 'browser') {
 	};
 } else {
 	sha256 = (data) => {
-		const hash = require('crypto').createHash('sha256');
+		const hash = createHash('sha256');
 		hash.update(new Uint8Array(data));
 		return hash.digest();
 	};

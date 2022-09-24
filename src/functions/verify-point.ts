@@ -8,7 +8,8 @@ function verifyPoint(publicKeyPoint: Point): Point {
 	writeBN(memory, pos, publicKeyPoint.x);
 	writeBN(memory, pos + BN_SIZE, publicKeyPoint.y);
 
-	const verified = getEcdsaExports().validate_point(pos);
+	const verifyPoint = getEcdsaExports().validate_point as CallableFunction;
+	const verified = verifyPoint(pos);
 
 	if (verified !== 0)
 		throw new Error(verified === 1 ? 'outside range' : verified === 2 ? 'not on curve' : 'bad point');
