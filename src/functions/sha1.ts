@@ -9,7 +9,7 @@ let sha1: (data: Uint8Array) => Uint8Array;
 if (typeof VARIANT === 'undefined' || VARIANT === 'browser') {
 	sha1 = function (data) {
 		const wasmMemory = getMemoryBuffer();
-		const wasmSha1 = getSha1();
+		const wasmSha1 = getSha1() as CallableFunction;
 
 		checkAvailableMemory(data.length + 20);
 

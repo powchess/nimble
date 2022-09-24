@@ -10,7 +10,7 @@ let sha256: (data: Uint8Array) => Uint8Array;
 if (typeof VARIANT === 'undefined' || VARIANT === 'browser') {
 	sha256 = function (data) {
 		const wasmMemory = getMemoryBuffer();
-		const wasmSha256 = getSha256();
+		const wasmSha256 = getSha256() as CallableFunction;
 
 		checkAvailableMemory(data.length + 32);
 

@@ -8,8 +8,8 @@ let sha256ripemd160: (data: Uint8Array) => Uint8Array;
 if (typeof VARIANT === 'undefined' || VARIANT === 'browser') {
 	sha256ripemd160 = function (data) {
 		const wasmMemory = getMemoryBuffer();
-		const wasmSha256 = getSha256();
-		const wasmRipemd160 = getRipemd160();
+		const wasmSha256 = getSha256() as CallableFunction;
+		const wasmRipemd160 = getRipemd160() as CallableFunction;
 
 		checkAvailableMemory(data.length + 32 + 20);
 

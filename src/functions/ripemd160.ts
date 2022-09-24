@@ -1,11 +1,10 @@
-import WasmHashes from '../wasm/wasm-hashes';
-import { ByteArray } from 'types/general';
+import { getMemoryBuffer, getRipemd160, checkAvailableMemory } from '../wasm/wasm-hashes';
 
-export default function ripemd160(data: ByteArray): Uint8Array {
-	const wasmMemory = WasmHashes.getMemoryBuffer();
-	const wasmRipemd160 = WasmHashes.getRipemd160();
+export default function ripemd160(data: Uint8Array): Uint8Array {
+	const wasmMemory = getMemoryBuffer();
+	const wasmRipemd160 = getRipemd160() as CallableFunction;
 
-	WasmHashes.checkAvailableMemory(data.length + 20);
+	checkAvailableMemory(data.length + 20);
 
 	const hashDataPos = wasmMemory.length - data.length;
 	const hashOutPos = hashDataPos - 20;

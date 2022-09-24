@@ -14,7 +14,7 @@ export default function readTx(reader: BufferReader): {
 	const version = readU32LE(reader);
 
 	const nin = readVarint(reader);
-	const inputs = [];
+	const inputs: Input[] = [];
 	for (let vin = 0; vin < nin; vin++) {
 		const txid = encodeHex(new Uint8Array(reader.read(32)).reverse());
 		const vout = readU32LE(reader);
@@ -22,18 +22,18 @@ export default function readTx(reader: BufferReader): {
 		const script = reader.read(scriptLength);
 		const sequence = readU32LE(reader);
 
-		const input = { txid, vout, script, sequence };
+		const input = new Input(txid, vout, script, sequence);
 		inputs.push(input);
 	}
 
 	const nout = readVarint(reader);
-	const outputs = [];
+	const outputs: Output[] = [];
 	for (let vout = 0; vout < nout; vout++) {
 		const satoshis = readU64LE(reader);
 		const scriptLength = readVarint(reader);
 		const script = reader.read(scriptLength);
 
-		const output = { satoshis, script };
+		const output = new Output(script, satoshis);
 		outputs.push(output);
 	}
 

@@ -2,14 +2,14 @@ import decodeDER from './decode-der';
 import sighash from './sighash';
 import ecdsaVerify from './ecdsa-verify';
 import Transaction from 'classes/transaction';
-import { ByteArray, Point } from 'types/general';
+import { Point } from 'types/general';
 
 export default function verifyTxSignature(
 	tx: Transaction,
 	vin: number,
 	signature: Uint8Array,
 	pubkey: Point,
-	parentScript: ByteArray,
+	parentScript: Uint8Array,
 	parentSatoshis: number
 ): boolean {
 	const dersig = signature.slice(0, signature.length - 1);
