@@ -1,11 +1,12 @@
-import sighash from './sighash';
+import sha256Async from './sha256-async';
 import Transaction from 'classes/transaction';
 import { ByteArray } from 'types/general';
+import preimageAsync from './preimage-async';
 
 async function sighashAsync(
 	tx: Transaction,
 	vin: number,
-	parentScript: ByteArray,
+	parentScript: Uint8Array,
 	parentSatoshis: number,
 	sighashFlags: number
 ) {

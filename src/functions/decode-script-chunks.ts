@@ -1,6 +1,6 @@
 import { Chunk } from 'types/general';
 
-export default function decodeScriptChunks(script: Uint8Array): Chunk {
+export default function decodeScriptChunks(script: Uint8Array): Chunk[] {
 	const chunks: Chunk[] = [];
 	let i = 0;
 	while (i < script.length) {
