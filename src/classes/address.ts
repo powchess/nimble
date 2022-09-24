@@ -1,6 +1,5 @@
 import PublicKey from './public-key';
 import Script from './script';
-
 import encodeAddress from '../functions/encode-address';
 import decodeAddress from '../functions/decode-address';
 import calculatePublicKeyHash from '../functions/calculate-public-key-hash';
@@ -48,7 +47,6 @@ export default class Address {
 	static from(x: Address | PublicKey | string): Address {
 		if (x instanceof Address) return x;
 		if (x instanceof PublicKey) return Address.fromPublicKey(x);
-		if (typeof x === 'object' && x) x = x.toString();
 		if (typeof x === 'string') return Address.fromString(x);
 		throw new Error('unsupported type');
 	}

@@ -1,55 +1,55 @@
 {
-  "name": "@runonbitcoin/nimble",
-  "version": "1.0.14",
-  "description": "A practical everyday JS library for BSV",
-  "main": "index.js",
-  "types": "index.d.ts",
-  "browser": "dist/nimble.browser.min.js",
-  "license": "MIT",
-  "repository": "git+https://github.com/runonbitcoin/nimble.git",
-  "files": [
-    "classes",
-    "constants",
-    "dist/**.min.js",
-    "functions",
-    "wasm/*.js",
-    "index.d.ts"
-  ],
-  "scripts": {
-    "build": "webpack",
-    "lint": "standard --fix",
-    "test": "env LIB=. mocha",
-    "test:cover": "env LIB=. env COVER=1 nyc --clean=${CLEAN:=true} -r=text -r=lcovonly -x=test/** mocha",
-    "test:node": "webpack && env LIB=dist/nimble.node.min.js env VARIANT=node mocha",
-    "test:browser": "node test/env/browser",
-    "test:types": "tsd"
-  },
-  "devDependencies": {
-    "@tsconfig/node16-strictest-esm": "^1.0.3",
-    "@typescript-eslint/eslint-plugin": "^5.38.0",
-    "@typescript-eslint/parser": "^5.38.0",
-    "bsv": "^1.5.6",
-    "chai": "^4.3.6",
-    "chai-as-promised": "^7.1.1",
-    "eslint": "^8.23.1",
-    "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-config-airbnb-typescript": "^17.0.0",
-    "eslint-plugin-import": "^2.26.0",
-    "eslint-plugin-prettier": "^4.2.1",
-    "fs-extra": "^10.1.0",
-    "glob": "^8.0.3",
-    "mocha": "^10.0.0",
-    "nyc": "^15.1.0",
-    "prettier": "^2.7.1",
-    "selenium-webdriver": "^4.4.0",
-    "standard": "^17.0.0",
-    "tsd": "^0.24.1",
-    "typescript": "^4.8.3",
-    "webpack": "^5.74.0",
-    "webpack-cli": "^4.10.0"
-  },
-  "tsd": {
-    "directory": "test"
-  },
-  "type": "module"
+	"name": "@runonbitcoin/nimble",
+	"version": "1.0.14",
+	"description": "A practical everyday JS library for BSV",
+	"main": "index.js",
+	"types": "index.d.ts",
+	"browser": "dist/nimble.browser.min.js",
+	"license": "MIT",
+	"repository": "git+https://github.com/runonbitcoin/nimble.git",
+	"files": [
+		"classes",
+		"constants",
+		"dist/**.min.js",
+		"functions",
+		"wasm/*.js",
+		"index.d.ts"
+	],
+	"scripts": {
+		"build": "webpack",
+		"lint": "standard --fix",
+		"test": "env LIB=. mocha",
+		"test:cover": "env LIB=. env COVER=1 nyc --clean=${CLEAN:=true} -r=text -r=lcovonly -x=test/** mocha",
+		"test:node": "webpack && env LIB=dist/nimble.node.min.js env VARIANT=node mocha",
+		"test:browser": "node test/env/browser",
+		"test:types": "tsd"
+	},
+	"devDependencies": {
+		"@tsconfig/node16-strictest-esm": "^1.0.3",
+		"@typescript-eslint/eslint-plugin": "^5.38.0",
+		"@typescript-eslint/parser": "^5.38.0",
+		"bsv": "^1.5.6",
+		"chai": "^4.3.6",
+		"chai-as-promised": "^7.1.1",
+		"eslint": "^8.23.1",
+		"eslint-config-airbnb": "^19.0.4",
+		"eslint-config-airbnb-typescript": "^17.0.0",
+		"eslint-plugin-prettier": "^4.2.1",
+		"fs-extra": "^10.1.0",
+		"glob": "^8.0.3",
+		"mocha": "^10.0.0",
+		"nyc": "^15.1.0",
+		"prettier": "^2.7.1",
+		"selenium-webdriver": "^4.4.0",
+		"standard": "^17.0.0",
+		"ts-loader": "^9.4.1",
+		"tsd": "^0.24.1",
+		"typescript": "^4.8.3",
+		"webpack": "^5.74.0",
+		"webpack-cli": "^4.10.0"
+	},
+	"tsd": {
+		"directory": "test"
+	},
+	"type": "module"
 }

@@ -1,4 +1,4 @@
-/* global VARIANT */
+import VARIANT from 'constants/variant';
 
 let decodeBase64: (base64: string) => Uint8Array;
 
@@ -8,7 +8,7 @@ let decodeBase64: (base64: string) => Uint8Array;
 if (typeof VARIANT === 'undefined' || VARIANT === 'browser') {
 	// Credit to https://raw.githubusercontent.com/beatgammit/base64-js
 
-	const REV_LOOKUP = [];
+	const REV_LOOKUP: number[] = [];
 
 	const BASE64_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 	for (let i = 0, len = BASE64_CHARS.length; i < len; ++i) {
@@ -20,7 +20,7 @@ if (typeof VARIANT === 'undefined' || VARIANT === 'browser') {
 	REV_LOOKUP['-'.charCodeAt(0)] = 62;
 	REV_LOOKUP['_'.charCodeAt(0)] = 63;
 
-	function getLens(b64) {
+	function getLens(b64: string) {
 		const len = b64.length;
 
 		if (len % 4 > 0) throw new Error('length must be a multiple of 4');
@@ -35,17 +35,13 @@ if (typeof VARIANT === 'undefined' || VARIANT === 'browser') {
 		return [validLen, placeHoldersLen];
 	}
 
-	function _byteLength(b64, validLen, placeHoldersLen) {
-		return ((validLen + placeHoldersLen) * 3) / 4 - placeHoldersLen;
-	}
-
 	decodeBase64 = function (b64: string) {
 		let tmp;
 		const lens = getLens(b64);
 		const validLen = lens[0];
 		const placeHoldersLen = lens[1];
-
-		const arr = new Uint8Array(_byteLength(b64, validLen, placeHoldersLen));
+		const byteLenght = ((validLen + placeHoldersLen) * 3) / 4 - placeHoldersLen;
+		const arr = new Uint8Array(byteLenght);
 
 		let curByte = 0;
 

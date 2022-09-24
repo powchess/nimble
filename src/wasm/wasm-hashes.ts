@@ -1,5 +1,4 @@
-/* global VARIANT */
-
+import VARIANT from 'constants/variant';
 import decodeBase64 from 'functions/decode-base64';
 
 const { WebAssembly } = global;

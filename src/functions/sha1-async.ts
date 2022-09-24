@@ -1,4 +1,4 @@
-/* global VARIANT */
+import VARIANT from 'constants/variant';
 
 const subtleCrypto = typeof window !== 'undefined' && window.crypto && window.crypto.subtle;
 

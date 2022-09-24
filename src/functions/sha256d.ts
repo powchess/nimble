@@ -1,15 +1,14 @@
-/* global VARIANT */
-
-import WasmHashes from '../wasm/wasm-hashes';
+import VARIANT from 'constants/variant';
+import { getMemoryBuffer, getSha256, checkAvailableMemory } from '../wasm/wasm-hashes';
 
 let sha256d: (data: Uint8Array) => Uint8Array;
 
 if (typeof VARIANT === 'undefined' || VARIANT === 'browser') {
 	sha256d = function (data) {
-		const wasmMemory = WasmHashes.getMemoryBuffer();
-		const wasmSha256 = WasmHashes.getSha256();
+		const wasmMemory = getMemoryBuffer();
+		const wasmSha256 = getSha256();
 
-		WasmHashes.checkAvailableMemory(data.length + 32 + 32);
+		checkAvailableMemory(data.length + 32 + 32);
 
 		const hashDataPos = wasmMemory.length - data.length;
 		const hashOutPos1 = hashDataPos - 32;

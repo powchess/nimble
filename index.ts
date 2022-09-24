@@ -10,6 +10,8 @@ import classes from './src/classes';
 import constants from './src/constants';
 import functions from './src/functions';
 import { version } from './package.json';
+import VARIANT from './src/constants/variant';
+import VERSION from './src/constants/version';
 
 const nimble = {
 	Address,

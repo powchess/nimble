@@ -1,5 +1,4 @@
-/* global VARIANT */
-
+import VARIANT from 'constants/variant';
 import { getMemoryBuffer } from 'wasm/wasm-secp256k1';
 import { checkAvailableMemory, getSha256 } from '../wasm/wasm-hashes';
 

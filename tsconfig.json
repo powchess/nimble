@@ -1,7 +1,8 @@
 {
 	"compilerOptions": {
 		"target": "es2016",
-		"module": "commonjs",
+		"module": "es2015",
+		"moduleResolution": "node",
 		"baseUrl": "./",
 		"paths": {
 			"*": ["./src/*"]
@@ -12,6 +13,6 @@
 		"strict": true,
 		"skipLibCheck": true
 	},
-	"include": ["src"],
+	"include": ["src", "index.ts", "test"],
 	"exclude": ["node_modules", "dist"]
 }

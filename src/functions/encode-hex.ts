@@ -1,4 +1,4 @@
-/* global VARIANT */
+import VARIANT from 'constants/variant';
 
 let encodeHex: (buffer: Uint8Array) => string;
 

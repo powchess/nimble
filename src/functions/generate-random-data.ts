@@ -1,4 +1,4 @@
-/* global VARIANT */
+import VARIANT from 'constants/variant';
 import { randomBytes, getRandomValues } from 'crypto';
 
 export default function generateRandomData(size: number) {

@@ -1,5 +1,4 @@
-/* global VARIANT */
-
+import VARIANT from 'constants/variant';
 import { checkAvailableMemory, getMemoryBuffer, getRipemd160, getSha256 } from '../wasm/wasm-hashes';
 
 let sha256ripemd160: (data: Uint8Array) => Uint8Array;
