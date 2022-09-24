@@ -1,19 +1,18 @@
-const { describe, it } = require('mocha')
-const { expect } = require('chai')
-const nimble = require('../env/nimble')
-const { verifyPrivateKey, generatePrivateKey } = nimble.functions
+import nimble from '../env/nimble';
+const { verifyPrivateKey, generatePrivateKey } = nimble.functions;
+import { describe, test, expect } from '@jest/globals';
 
 describe('verifyPrivateKey', () => {
-  it('does not throw for valid key', () => {
-    verifyPrivateKey(generatePrivateKey())
-  })
+	test('does not throw for valid key', () => {
+		verifyPrivateKey(generatePrivateKey());
+	});
 
-  it('throws if bad length', () => {
-    expect(() => verifyPrivateKey([])).to.throw('bad length')
-    expect(() => verifyPrivateKey(new Array(33))).to.throw('bad length')
-  })
+	test('throws if bad length', () => {
+		expect(() => verifyPrivateKey([])).toThrow('bad length');
+		expect(() => verifyPrivateKey(new Array(33))).toThrow('bad length');
+	});
 
-  it('throws if out of range', () => {
-    expect(() => verifyPrivateKey(new Array(32).fill(255))).to.throw('outside range')
-  })
-})
+	test('throws if out of range', () => {
+		expect(() => verifyPrivateKey(new Array(32).fill(255))).toThrow('outside range');
+	});
+});

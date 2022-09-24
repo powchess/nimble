@@ -1,14 +1,13 @@
-const { describe, it } = require('mocha')
-const nimble = require('../env/nimble')
-const { calculateTxid, encodeTx, encodeHex } = nimble.functions
-const bsv = require('bsv')
-const { expect } = require('chai')
+import nimble from '../env/nimble';
+const { calculateTxid, encodeTx, encodeHex } = nimble.functions;
+import bsv from 'bsv';
+import { describe, test, expect } from '@jest/globals';
 
 describe('calculateTxid', () => {
-  it('calculates txid', () => {
-    const tx = { inputs: [], outputs: [{ script: [], satoshis: 100 }] }
-    const bsvtx = new bsv.Transaction(encodeHex(encodeTx(tx)))
-    const txid = calculateTxid(encodeTx(tx))
-    expect(txid).to.equal(bsvtx.hash)
-  })
-})
+	test('calculates txid', () => {
+		const tx = { inputs: [], outputs: [{ script: [], satoshis: 100 }] };
+		const bsvtx = new bsv.Transaction(encodeHex(encodeTx(tx)));
+		const txid = calculateTxid(encodeTx(tx));
+		expect(txid).toBe(bsvtx.hash);
+	});
+});

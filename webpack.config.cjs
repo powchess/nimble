@@ -143,8 +143,7 @@ const browserTests = {
 		path: DIST_PATH,
 	},
 	externals: {
-		mocha: 'mocha.Mocha',
-		chai: 'chai',
+		jest: 'jest',
 		jsdom: 'jsdom',
 		bsv: 'bsv',
 		target: LIBRARY_NAME,

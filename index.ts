@@ -9,7 +9,7 @@ import Transaction from './src/classes/transaction';
 import classes from './src/classes';
 import constants from './src/constants';
 import functions from './src/functions';
-import { version } from './package.json';
+import * as pkg from './package.json';
 import VARIANT from './src/constants/variant';
 import VERSION from './src/constants/version';
 
@@ -27,7 +27,7 @@ const nimble = {
 	testnet: false,
 	feePerKb: 50,
 
-	version: typeof VERSION === 'undefined' ? version : VERSION,
+	version: typeof VERSION === 'undefined' ? pkg.version : VERSION,
 	variant: typeof VARIANT === 'undefined' ? undefined : VARIANT,
 };
 

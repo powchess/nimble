@@ -1,5 +1,4 @@
 import { BN_SIZE, getMemoryBuffer, getBnExports, writeBN, getNPos } from '../wasm/wasm-secp256k1';
-import { ByteArray } from 'types/general';
 
 function verifyPrivateKey(privateKey: Uint8Array): Uint8Array {
 	if (privateKey.length !== 32) throw new Error('bad length');

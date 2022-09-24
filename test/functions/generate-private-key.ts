@@ -1,28 +1,27 @@
-const { describe, it } = require('mocha')
-const { expect } = require('chai')
-const nimble = require('../env/nimble')
-const { generatePrivateKey } = nimble.functions
-const bsv = require('bsv')
+import nimble from '../env/nimble';
+const { generatePrivateKey } = nimble.functions;
+import bsv from 'bsv';
+import { describe, test, expect } from '@jest/globals';
 
 describe('generatePrivateKey', () => {
-  it('valid', () => {
-    for (let i = 0; i < 100; i++) {
-      const privateKey = generatePrivateKey()
-      const bsvPrivateKey = bsv.PrivateKey.fromBuffer(bsv.deps.Buffer.from(privateKey))
-      bsvPrivateKey.toPublicKey()
-      expect(Buffer.from(privateKey).toString('hex')).to.equal(bsvPrivateKey.toBuffer().toString('hex'))
-    }
-  })
+	test('valid', () => {
+		for (let i = 0; i < 100; i++) {
+			const privateKey = generatePrivateKey();
+			const bsvPrivateKey = bsv.PrivateKey.fromBuffer(bsv.deps.Buffer.from(privateKey));
+			bsvPrivateKey.toPublicKey();
+			expect(Buffer.from(privateKey).toString('hex')).toBe(bsvPrivateKey.toBuffer().toString('hex'));
+		}
+	});
 
-  it('performance', () => {
-    generatePrivateKey()
-    let count = 0
-    const start = new Date()
-    while (new Date() - start < 100) {
-      generatePrivateKey()
-      count++
-    }
-    const msPerCall = 1000 / count
-    expect(msPerCall).to.be.lessThan(1)
-  })
-})
+	test('performance', () => {
+		generatePrivateKey();
+		let count = 0;
+		const start = Date.now();
+		while (Date.now() - start < 100) {
+			generatePrivateKey();
+			count++;
+		}
+		const msPerCall = 1000 / count;
+		expect(msPerCall).toBeLessThan(1);
+	});
+});

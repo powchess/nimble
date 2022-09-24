@@ -1,23 +1,22 @@
-const { describe, it } = require('mocha')
-const { expect } = require('chai')
-const nimble = require('../env/nimble')
-const { isBuffer } = nimble.functions
+import nimble from '../env/nimble';
+const { isBuffer } = nimble.functions;
+import { describe, test, expect } from '@jest/globals';
 
 describe('isBuffer', () => {
-  it('returns true for buffer', () => {
-    expect(isBuffer([])).to.equal(true)
-    expect(isBuffer(Buffer.from([]))).to.equal(true)
-    expect(isBuffer(new Uint8Array([]))).to.equal(true)
-  })
+	test('returns true for buffer', () => {
+		expect(isBuffer([])).toBe(true);
+		expect(isBuffer(Buffer.from([]))).toBe(true);
+		expect(isBuffer(new Uint8Array([]))).toBe(true);
+	});
 
-  it('returns false for non-buffer', () => {
-    expect(isBuffer()).to.equal(false)
-    expect(isBuffer({})).to.equal(false)
-    expect(isBuffer(Uint16Array.from([]))).to.equal(false)
-  })
+	test('returns false for non-buffer', () => {
+		expect(isBuffer()).toBe(false);
+		expect(isBuffer({})).toBe(false);
+		expect(isBuffer(Uint16Array.from([]))).toBe(false);
+	});
 
-  it('returns false non-byte elements', () => {
-    expect(isBuffer(['a'])).to.equal(false)
-    expect(isBuffer([1, undefined])).to.equal(false)
-  })
-})
+	test('returns false non-byte elements', () => {
+		expect(isBuffer(['a'])).toBe(false);
+		expect(isBuffer([1, undefined])).toBe(false);
+	});
+});

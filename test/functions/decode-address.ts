@@ -1,40 +1,39 @@
-const { describe, it } = require('mocha')
-const { expect } = require('chai')
-const nimble = require('../env/nimble')
-const { decodeAddress, encodeBase58Check } = nimble.functions
-const bsv = require('bsv')
+import nimble from '../env/nimble';
+const { decodeAddress, encodeBase58Check } = nimble.functions;
+import bsv from 'bsv';
+import { describe, test, expect } from '@jest/globals';
 
 describe('decodeAddress', () => {
-  it('valid', () => {
-    expect(decodeAddress('14kPnFashu7rYZKTXvJU8gXpJMf9e3f8k1')).to.deep.equal({
-      testnet: false,
-      pubkeyhash: Array.from(new bsv.Address('14kPnFashu7rYZKTXvJU8gXpJMf9e3f8k1').hashBuffer)
-    })
-    expect(decodeAddress('mhZZFmSiUqcmf8wQrBNjPAVHUCFsHso9ni')).to.deep.equal({
-      testnet: true,
-      pubkeyhash: Array.from(new bsv.Address('mhZZFmSiUqcmf8wQrBNjPAVHUCFsHso9ni').hashBuffer)
-    })
-  })
+	test('valid', () => {
+		expect(decodeAddress('14kPnFashu7rYZKTXvJU8gXpJMf9e3f8k1')).toEqual({
+			testnet: false,
+			pubkeyhash: Array.from(new bsv.Address('14kPnFashu7rYZKTXvJU8gXpJMf9e3f8k1').hashBuffer),
+		});
+		expect(decodeAddress('mhZZFmSiUqcmf8wQrBNjPAVHUCFsHso9ni')).toEqual({
+			testnet: true,
+			pubkeyhash: Array.from(new bsv.Address('mhZZFmSiUqcmf8wQrBNjPAVHUCFsHso9ni').hashBuffer),
+		});
+	});
 
-  it('throws if not a string', () => {
-    expect(() => decodeAddress()).to.throw('not a string')
-    expect(() => decodeAddress([])).to.throw('not a string')
-  })
+	test('throws if not a string', () => {
+		expect(() => decodeAddress()).toThrow('not a string');
+		expect(() => decodeAddress([])).toThrow('not a string');
+	});
 
-  it('throws if unsupported version', () => {
-    expect(() => decodeAddress('3P14159f73E4gFr7JterCCQh9QjiTjiZrG')).to.throw('unsupported version')
-  })
+	test('throws if unsupported version', () => {
+		expect(() => decodeAddress('3P14159f73E4gFr7JterCCQh9QjiTjiZrG')).toThrow('unsupported version');
+	});
 
-  it('throws if bad checksum', () => {
-    expect(() => decodeAddress('mhZZFmSiUqcmf8wQrBNjPAVHUCFsHso9n')).to.throw('bad checksum')
-  })
+	test('throws if bad checksum', () => {
+		expect(() => decodeAddress('mhZZFmSiUqcmf8wQrBNjPAVHUCFsHso9n')).toThrow('bad checksum');
+	});
 
-  it('throws if unsupported base58', () => {
-    expect(() => decodeAddress('@')).to.throw('bad base58 chars')
-  })
+	test('throws if unsupported base58', () => {
+		expect(() => decodeAddress('@')).toThrow('bad base58 chars');
+	});
 
-  it('throws if too short', () => {
-    const badLengthAddress = encodeBase58Check(0x00, [])
-    expect(() => decodeAddress(badLengthAddress)).to.throw('bad payload')
-  })
-})
+	test('throws if too short', () => {
+		const badLengthAddress = encodeBase58Check(0x00, []);
+		expect(() => decodeAddress(badLengthAddress)).toThrow('bad payload');
+	});
+});

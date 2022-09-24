@@ -1,23 +1,22 @@
-const { describe, it } = require('mocha')
-require('chai').use(require('chai-as-promised'))
-const { expect } = require('chai')
-const nimble = require('../env/nimble')
-const { verifyScript } = nimble.functions
+import nimble from '../env/nimble';
+const { verifyScript } = nimble.functions;
+import { describe, test, expect } from '@jest/globals';
 
 describe('verifyScript', () => {
-  it('does not throw if script passes', () => {
-    expect(() => verifyScript([], [nimble.constants.opcodes.OP_TRUE])).not.to.throw()
-  })
+	test('does not throw if script passes', () => {
+		expect(() => verifyScript([], [nimble.constants.opcodes.OP_TRUE])).not.toThrow();
+	});
 
-  it('throws if script fails', () => {
-    expect(() => verifyScript([], [nimble.constants.opcodes.OP_FALSE])).to.throw()
-  })
+	test('throws if script fails', () => {
+		expect(() => verifyScript([], [nimble.constants.opcodes.OP_FALSE])).toThrow();
+	});
 
-  it('promise resolves if script passes and async', async () => {
-    await verifyScript([], [nimble.constants.opcodes.OP_TRUE], undefined, undefined, undefined, true)
-  })
+	test('promise resolves if script passes and async', async () => {
+		await verifyScript([], [nimble.constants.opcodes.OP_TRUE], undefined, undefined, undefined, true);
+	});
 
-  it('promise is rejected if script fails and async', async () => {
-    await expect(verifyScript([], [nimble.constants.opcodes.OP_FALSE], undefined, undefined, undefined, true)).to.be.rejected
-  })
-})
+	test('promise is rejected if script fails and async', async () => {
+		await expect(verifyScript([], [nimble.constants.opcodes.OP_FALSE], undefined, undefined, undefined, true))
+			.rejects;
+	});
+});

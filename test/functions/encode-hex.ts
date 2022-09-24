@@ -1,14 +1,13 @@
-const { describe, it } = require('mocha')
-const { expect } = require('chai')
-const nimble = require('../env/nimble')
-const { encodeHex } = nimble.functions
+import nimble from '../env/nimble';
+const { encodeHex } = nimble.functions;
+import { describe, test, expect } from '@jest/globals';
 
 describe('encodeHex', () => {
-  it('empty', () => {
-    expect(encodeHex([])).to.equal('')
-  })
+	test('empty', () => {
+		expect(encodeHex([])).toBe('');
+	});
 
-  it('buffer', () => {
-    expect(encodeHex([0x00, 0x11, 0x22])).to.equal('001122')
-  })
-})
+	test('buffer', () => {
+		expect(encodeHex([0x00, 0x11, 0x22])).toBe('001122');
+	});
+});

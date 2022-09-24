@@ -1,25 +1,24 @@
-const { describe, it } = require('mocha')
-const { expect } = require('chai')
-const nimble = require('../env/nimble')
-const { generatePrivateKey, calculatePublicKey, verifyPoint } = nimble.functions
+import nimble from '../env/nimble';
+const { generatePrivateKey, calculatePublicKey, verifyPoint } = nimble.functions;
+import { describe, test, expect } from '@jest/globals';
 
 describe('verifyPoint', () => {
-  it('valid', () => {
-    const privateKey = generatePrivateKey()
-    const publicKey = calculatePublicKey(privateKey)
-    expect(() => verifyPoint(publicKey)).not.to.throw()
-  })
+	test('valid', () => {
+		const privateKey = generatePrivateKey();
+		const publicKey = calculatePublicKey(privateKey);
+		expect(() => verifyPoint(publicKey)).not.toThrow();
+	});
 
-  it('bad', () => {
-    const privateKey = generatePrivateKey()
-    const publicKey = calculatePublicKey(privateKey)
-    publicKey.y = publicKey.x
-    expect(() => verifyPoint(publicKey)).to.throw('not on curve')
-  })
+	test('bad', () => {
+		const privateKey = generatePrivateKey();
+		const publicKey = calculatePublicKey(privateKey);
+		publicKey.y = publicKey.x;
+		expect(() => verifyPoint(publicKey)).toThrow('not on curve');
+	});
 
-  it('returns self for chaining', () => {
-    const privateKey = generatePrivateKey()
-    const publicKey = calculatePublicKey(privateKey)
-    expect(verifyPoint(publicKey)).to.equal(publicKey)
-  })
-})
+	test('returns self for chaining', () => {
+		const privateKey = generatePrivateKey();
+		const publicKey = calculatePublicKey(privateKey);
+		expect(verifyPoint(publicKey)).toBe(publicKey);
+	});
+});
