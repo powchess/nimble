@@ -1,6 +1,6 @@
 import isBuffer from './is-buffer';
 
-export default function createP2PKHLockScript(pubkeyhash: Uint8Array) {
+export default function createP2PKHLockScript(pubkeyhash: Uint8Array): Uint8Array {
 	if (!isBuffer(pubkeyhash)) throw new Error('not a buffer');
 	const buf = new Uint8Array(25);
 	buf[0] = 118; // OP_DUP

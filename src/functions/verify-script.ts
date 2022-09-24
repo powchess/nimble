@@ -1,6 +1,14 @@
 import evalScript from './eval-script';
+import Transaction from 'classes/transaction';
 
-function verifyScript(unlockScript, lockScript, tx, vin, parentSatoshis, async = false) {
+function verifyScript(
+	unlockScript: Uint8Array,
+	lockScript: Uint8Array,
+	tx: Transaction,
+	vin: number,
+	parentSatoshis: number,
+	async = false
+) {
 	const vm = evalScript(unlockScript, lockScript, tx, vin, parentSatoshis, { async, trace: false });
 
 	if (async) {

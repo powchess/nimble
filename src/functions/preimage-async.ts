@@ -5,7 +5,7 @@ import { ByteArray } from 'types/general';
 export default async function preimageAsync(
 	tx: Transaction,
 	vin: number,
-	parentScript: ByteArray,
+	parentScript: Uint8Array,
 	parentSatoshis: number,
 	sighashFlags: number
 ) {

@@ -1,7 +1,14 @@
 import readU32LE from './read-u32-le';
 import BufferReader from 'classes/buffer-reader';
 
-export default function readBlockHeader(reader: BufferReader) {
+export default function readBlockHeader(reader: BufferReader): {
+	version: number;
+	prevBlock: Uint8Array;
+	merkleRoot: Uint8Array;
+	timestamp: number;
+	bits: number;
+	nonce: number;
+} {
 	const version = readU32LE(reader);
 	const prevBlock = reader.read(32);
 	const merkleRoot = reader.read(32);

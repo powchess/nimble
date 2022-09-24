@@ -1,9 +1,10 @@
 import { BN_SIZE, PT_SIZE, getMemoryBuffer, getEcdsaExports, writeBN, readBN } from '../wasm/wasm-secp256k1';
+import { ByteArray, Point, Signature } from 'types/general';
 
 export default function ecdsaSignWithK(
-	hash32: ByteArray,
-	k: ByteArray,
-	privateKey: ByteArray,
+	hash32: Uint8Array,
+	k: Uint8Array,
+	privateKey: Uint8Array,
 	publicKey: Point
 ): Signature | null {
 	const memory = getMemoryBuffer();

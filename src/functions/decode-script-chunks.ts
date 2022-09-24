@@ -1,5 +1,7 @@
-export default function decodeScriptChunks(script: Uint8Array) {
-	const chunks: { opcode: number; buf?: Uint8Array }[] = [];
+import { Chunk } from 'types/general';
+
+export default function decodeScriptChunks(script: Uint8Array): Chunk {
+	const chunks: Chunk[] = [];
 	let i = 0;
 	while (i < script.length) {
 		const opcode = script[i];

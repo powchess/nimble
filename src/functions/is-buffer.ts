@@ -1,4 +1,4 @@
-export default function isBuffer(a: unknown) {
+export default function isBuffer(a: unknown): boolean {
 	// This covers both Uint8Array and Buffer instances
 	if (a instanceof Uint8Array) return true;
 

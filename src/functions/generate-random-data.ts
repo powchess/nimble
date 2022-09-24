@@ -1,7 +1,7 @@
 import VARIANT from 'constants/variant';
 import { randomBytes, getRandomValues } from 'crypto';
 
-export default function generateRandomData(size: number) {
+export default function generateRandomData(size: number): Uint8Array {
 	if (typeof VARIANT !== 'undefined' && VARIANT === 'browser') {
 		return getRandomValues(new Uint8Array(size));
 	} else if (typeof VARIANT !== 'undefined' && VARIANT === 'node') {

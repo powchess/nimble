@@ -35,7 +35,7 @@ if (typeof VARIANT === 'undefined' || VARIANT === 'browser') {
 		return [validLen, placeHoldersLen];
 	}
 
-	decodeBase64 = function (b64: string) {
+	decodeBase64 = function (b64: string): Uint8Array {
 		let tmp;
 		const lens = getLens(b64);
 		const validLen = lens[0];

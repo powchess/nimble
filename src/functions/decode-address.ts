@@ -1,6 +1,6 @@
 import decodeBase58Check from './decode-base58-check';
 
-export default function decodeAddress(address: string) {
+export default function decodeAddress(address: string): { testnet: boolean, pubkeyhash: Uint8Array} {
 	const { version, payload } = decodeBase58Check(address);
 
 	if (payload.length !== 20) throw new Error('bad payload');

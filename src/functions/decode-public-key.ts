@@ -1,7 +1,8 @@
 import { BN_SIZE, getMemoryBuffer, getSecp256k1Exports, writeBN, readBN } from '../wasm/wasm-secp256k1';
 import verifyPoint from './verify-point';
+import { Point } from 'types/general';
 
-export default function decodePublicKey(buffer: Uint8Array) {
+export default function decodePublicKey(buffer: Uint8Array): Point {
 	const prefix = buffer[0];
 
 	if (prefix === 0x04) {
@@ -19,7 +20,7 @@ export default function decodePublicKey(buffer: Uint8Array) {
 	throw new Error(`bad prefix: ${prefix}`);
 }
 
-function decodeCompressedPublicKey(buffer: Uint8Array) {
+function decodeCompressedPublicKey(buffer: Uint8Array): Point {
 	if (buffer.length !== 33) throw new Error('bad length');
 
 	let xstart = 1;
@@ -39,7 +40,7 @@ function decodeCompressedPublicKey(buffer: Uint8Array) {
 	return { x, y };
 }
 
-function decodeUncompressedPublicKey(buffer: Uint8Array) {
+function decodeUncompressedPublicKey(buffer: Uint8Array): Point {
 	if (buffer.length !== 65) throw new Error('bad length');
 
 	let xstart = 1;

@@ -1,7 +1,7 @@
 import { Point, Signature } from 'types/general';
 import { BN_SIZE, PT_SIZE, getMemoryBuffer, getEcdsaExports, writeBN } from '../wasm/wasm-secp256k1';
 
-export default function ecdsaVerify(signature: Signature, hash32: Uint8Array, publicKey: Point) {
+export default function ecdsaVerify(signature: Signature, hash32: Uint8Array, publicKey: Point): boolean {
 	const memory = getMemoryBuffer();
 	const rPos = memory.length - BN_SIZE;
 	const sPos = rPos - BN_SIZE;

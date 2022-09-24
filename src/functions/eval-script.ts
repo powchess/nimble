@@ -10,6 +10,7 @@ import decodePublicKey from './decode-public-key';
 import ripemd160 from './ripemd160';
 import sha1 from './sha1';
 import sha256 from './sha256';
+import Transaction from 'classes/transaction';
 
 const defaults = {
 	async: false,
@@ -19,7 +20,7 @@ const defaults = {
 export default function evalScript(
 	unlockScript: Uint8Array,
 	lockScript: Uint8Array,
-	tx,
+	tx: Transaction,
 	vin: number,
 	parentSatoshis: number,
 	opts = {}

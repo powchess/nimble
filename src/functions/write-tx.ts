@@ -5,7 +5,7 @@ import writeVarint from './write-varint';
 import BufferWriter from 'classes/buffer-writer';
 import Transaction from 'classes/transaction';
 
-export default function writeTx(writer: BufferWriter, tx: Transaction) {
+export default function writeTx(writer: BufferWriter, tx: Transaction): void {
 	const version = typeof tx.version === 'undefined' ? 1 : tx.version;
 	const inputs = tx.inputs || [];
 	const outputs = tx.outputs || [];

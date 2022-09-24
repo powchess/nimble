@@ -1,7 +1,7 @@
 import decodeBase58Check from './decode-base58-check';
 import verifyPrivateKey from './verify-private-key';
 
-export default function decodeWIF(privkey: string) {
+export default function decodeWIF(privkey: string): { number: Uint8Array; testnet: boolean; compressed: boolean } {
 	const { version, payload } = decodeBase58Check(privkey);
 
 	const testnet = version === 0xef;

@@ -1,4 +1,4 @@
-export default function isP2PKHLockScript(script) {
+export default function isP2PKHLockScript(script: Uint8Array): boolean {
 	return (
 		script.length === 25 &&
 		script[0] === 118 && // OP_DUP

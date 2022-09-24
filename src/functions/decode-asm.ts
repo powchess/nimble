@@ -3,7 +3,7 @@ import opcodes from '../constants/opcodes';
 import BufferWriter from '../classes/buffer-writer';
 import writePushData from './write-push-data';
 
-export default function decodeASM(script: string) {
+export default function decodeASM(script: string): Uint8Array {
 	const parts = script.split(' ').filter((x) => x.length);
 	const writer = new BufferWriter();
 	parts.forEach((part) => {

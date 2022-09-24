@@ -1,6 +1,6 @@
 import BASE58_CHARS from '../constants/base58-chars';
 
-export default function encodeBase58(payload) {
+export default function encodeBase58(payload: Uint8Array): string {
 	// Credit: https://gist.github.com/diafygi/90a3e80ca1c2793220e5/
 	const d: number[] = []; // the array for storing the stream of base58 digits
 	let s = ''; // the result string variable that will be returned

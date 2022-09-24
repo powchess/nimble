@@ -11,7 +11,7 @@ import { ByteArray } from 'types/general';
 export default function preimage(
 	tx: Transaction,
 	vin: number,
-	parentScript: ByteArray,
+	parentScript: Uint8Array,
 	parentSatoshis: number,
 	sighashFlags: number,
 	async: boolean = false
