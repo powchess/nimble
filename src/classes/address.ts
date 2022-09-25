@@ -1,5 +1,7 @@
+/* eslint-disable import/no-cycle */
 import PublicKey from './public-key';
 import Script from './script';
+/* eslint-enable import/no-cycle */
 import encodeAddress from '../functions/encode-address';
 import decodeAddress from '../functions/decode-address';
 import calculatePublicKeyHash from '../functions/calculate-public-key-hash';
@@ -11,6 +13,7 @@ const ADDRESS_TO_STRING_CACHE = new WeakMap(); // Cached to reduce sha256 hashin
 
 export default class Address {
 	public pubkeyhash: Uint8Array;
+
 	public testnet: boolean;
 
 	constructor(pubkeyhash: Uint8Array, testnet: boolean, validate = true) {
@@ -35,7 +38,7 @@ export default class Address {
 	static fromPublicKey(publicKey: PublicKey) {
 		if (PUBLIC_KEY_TO_ADDRESS_CACHE.has(publicKey)) return PUBLIC_KEY_TO_ADDRESS_CACHE.get(publicKey);
 
-		const testnet = publicKey.testnet;
+		const { testnet } = publicKey;
 		const pubkeyhash = calculatePublicKeyHash(publicKey.point);
 		const address = new Address(pubkeyhash, testnet, false);
 

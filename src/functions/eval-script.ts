@@ -1,3 +1,6 @@
+import Transaction from 'classes/transaction';
+import OP_CODES from 'constants/opcodes';
+import { Chunk } from 'types/general';
 import encodeHex from './encode-hex';
 import decodeHex from './decode-hex';
 import decodeScriptChunks from './decode-script-chunks';
@@ -10,9 +13,6 @@ import decodePublicKey from './decode-public-key';
 import ripemd160 from './ripemd160';
 import sha1 from './sha1';
 import sha256 from './sha256';
-import Transaction from 'classes/transaction';
-import OP_CODES from 'constants/opcodes';
-import { Chunk } from 'types/general';
 
 const defaults = {
 	async: false,
@@ -104,9 +104,8 @@ export default function evalScript(
 		const addNum = (a: NumNeg, b: NumNeg): NumNeg => {
 			if (a.neg === b.neg) {
 				return { num: a.num + b.num, neg: a.neg };
-			} else {
-				return a.num > b.num ? { num: a.num - b.num, neg: a.neg } : { num: b.num - a.num, neg: b.neg };
 			}
+			return a.num > b.num ? { num: a.num - b.num, neg: a.neg } : { num: b.num - a.num, neg: b.neg };
 		};
 
 		const subNum = (b: NumNeg, a: NumNeg) => addNum(a, { num: b.num, neg: !b.neg });
@@ -131,7 +130,7 @@ export default function evalScript(
 				let sub = 0; // sub branch
 				let psub = 0; // previous sub
 				while (i < chunks.length) {
-					const opcode = chunks[i].opcode;
+					const { opcode } = chunks[i];
 					const prevOp = chunks[i - 1].opcode;
 					// Because we trace the previous chunk, this funky code works out if
 					// it is an opcode that is executed or not
@@ -608,42 +607,42 @@ export default function evalScript(
 				case OP_CODES.OP_RIPEMD160:
 					if (async) {
 						return ripemd160Async(pop()).then((x) => stack.push(x));
-					} else {
-						stack.push(ripemd160(pop()));
-						return;
 					}
+					stack.push(ripemd160(pop()));
+					return;
+
 				case OP_CODES.OP_SHA1:
 					if (async) {
 						return sha1Async(pop()).then((x) => stack.push(x));
-					} else {
-						stack.push(sha1(pop()));
-						return;
 					}
+					stack.push(sha1(pop()));
+					return;
+
 				case OP_CODES.OP_SHA256:
 					if (async) {
 						return sha256Async(pop()).then((x) => stack.push(x));
-					} else {
-						stack.push(sha256(pop()));
-						return;
 					}
+					stack.push(sha256(pop()));
+					return;
+
 				case OP_CODES.OP_HASH160:
 					if (async) {
 						return sha256Async(pop())
 							.then((x) => ripemd160Async(x))
 							.then((x) => stack.push(x));
-					} else {
-						stack.push(ripemd160(sha256(pop())));
-						return;
 					}
+					stack.push(ripemd160(sha256(pop())));
+					return;
+
 				case OP_CODES.OP_HASH256:
 					if (async) {
 						return sha256Async(pop())
 							.then((x) => sha256Async(x))
 							.then((x) => stack.push(x));
-					} else {
-						stack.push(sha256(sha256(pop())));
-						return;
 					}
+					stack.push(sha256(sha256(pop())));
+					return;
+
 				case OP_CODES.OP_CODESEPARATOR:
 					checkIndex = i + 1;
 					break;
@@ -658,9 +657,7 @@ export default function evalScript(
 						const check = (verified: boolean) => {
 							if (chunk.opcode === OP_CODES.OP_CHECKSIG) {
 								stack.push(encodeNum(verified ? 1 : 0));
-							} else {
-								if (!verified) throw new Error('OP_CHECKSIGVERIFY failed');
-							}
+							} else if (!verified) throw new Error('OP_CHECKSIGVERIFY failed');
 						};
 
 						if (async) {
@@ -672,9 +669,8 @@ export default function evalScript(
 								cleanedScript,
 								parentSatoshis
 							).then(check);
-						} else {
-							check(verifyTxSignature(tx, vin, signature, pubkey, cleanedScript, parentSatoshis));
 						}
+						check(verifyTxSignature(tx, vin, signature, pubkey, cleanedScript, parentSatoshis));
 					}
 					break;
 				case OP_CODES.OP_CHECKMULTISIG:
@@ -710,9 +706,7 @@ export default function evalScript(
 						const check = (success: boolean) => {
 							if (chunk.opcode === OP_CODES.OP_CHECKMULTISIG) {
 								stack.push(encodeNum(success ? 1 : 0));
-							} else {
-								if (!success) throw new Error('OP_CHECKMULTISIGVERIFY failed');
-							}
+							} else if (!success) throw new Error('OP_CHECKMULTISIGVERIFY failed');
 						};
 
 						if (async) {
@@ -737,27 +731,26 @@ export default function evalScript(
 								}
 								return success;
 							})().then(check);
-						} else {
-							while (sig < sigs.length) {
-								if (key === keys.length) {
-									success = false;
-									break;
-								}
-								const verified = verifyTxSignature(
-									tx,
-									vin,
-									sigs[sig],
-									keys[key],
-									cleanedScript,
-									parentSatoshis
-								);
-								if (verified) {
-									sig++;
-								}
-								key++;
-							}
-							check(success);
 						}
+						while (sig < sigs.length) {
+							if (key === keys.length) {
+								success = false;
+								break;
+							}
+							const verified = verifyTxSignature(
+								tx,
+								vin,
+								sigs[sig],
+								keys[key],
+								cleanedScript,
+								parentSatoshis
+							);
+							if (verified) {
+								sig++;
+							}
+							key++;
+						}
+						check(success);
 					}
 					break;
 				case OP_CODES.OP_NOP1:
@@ -796,10 +789,9 @@ export default function evalScript(
 					return Promise.resolve(vm);
 				}
 			})();
-		} else {
-			while (i < chunks.length && !done) step();
-			return finish();
 		}
+		while (i < chunks.length && !done) step();
+		return finish();
 	} catch (e) {
 		const err = e instanceof Error ? e : null;
 		const vm = finish(err);

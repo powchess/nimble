@@ -1,5 +1,5 @@
-import sha256Async from './sha256-async';
 import Transaction from 'classes/transaction';
+import sha256Async from './sha256-async';
 import preimageAsync from './preimage-async';
 
 async function sighashAsync(
@@ -9,7 +9,7 @@ async function sighashAsync(
 	parentSatoshis: number,
 	sighashFlags: number
 ) {
-	return await preimageAsync(tx, vin, parentScript, parentSatoshis, sighashFlags).then(sha256Async).then(sha256Async);
+	return preimageAsync(tx, vin, parentScript, parentSatoshis, sighashFlags).then(sha256Async).then(sha256Async);
 }
 
 export default sighashAsync;

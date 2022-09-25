@@ -1,8 +1,8 @@
+import Transaction from 'classes/transaction';
+import { ByteArray, Point } from 'types/general';
 import decodeDER from './decode-der';
 import sighashAsync from './sighash-async';
 import ecdsaVerifyAsync from './ecdsa-verify-async';
-import Transaction from 'classes/transaction';
-import { ByteArray, Point } from 'types/general';
 
 async function verifyTxSignatureAsync(
 	tx: Transaction,

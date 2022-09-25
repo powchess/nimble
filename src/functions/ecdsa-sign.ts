@@ -1,6 +1,6 @@
+import { Point } from 'types/general';
 import generatePrivateKey from './generate-private-key';
 import ecdsaSignWithK from './ecdsa-sign-with-k';
-import { Point } from 'types/general';
 
 export default function ecdsaSign(
 	hash32: Uint8Array,

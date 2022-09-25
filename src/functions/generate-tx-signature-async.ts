@@ -1,8 +1,8 @@
+import Transaction from 'classes/transaction';
+import { Point } from 'types/general';
 import encodeDER from './encode-der';
 import sighashAsync from './sighash-async';
 import ecdsaSignAsync from './ecdsa-sign-async';
-import Transaction from 'classes/transaction';
-import { Point } from 'types/general';
 
 const SIGHASH_ALL = 0x01;
 const SIGHASH_FORKID = 0x40;

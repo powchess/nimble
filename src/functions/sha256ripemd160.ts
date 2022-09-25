@@ -1,5 +1,5 @@
 import VARIANT from 'constants/variant';
-import { checkAvailableMemory, getMemoryBuffer, getRipemd160, getSha256 } from '../wasm/wasm-hashes';
+import { checkAvailableMemory, getMemoryBuffer, getRipemd160, getSha256 } from 'run-wasm/wasm-hashes';
 import ripemd160 from './ripemd160';
 import sha256 from './sha256';
 

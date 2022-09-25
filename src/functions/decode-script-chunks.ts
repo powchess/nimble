@@ -31,7 +31,7 @@ export default function decodeScriptChunks(script: Uint8Array): Chunk[] {
 			chunks.push({ opcode, buf: script.slice(i, i + len) });
 			i += len;
 		} else {
-			chunks.push({ opcode: opcode });
+			chunks.push({ opcode });
 		}
 	}
 	if (i !== script.length) throw new Error('bad script');

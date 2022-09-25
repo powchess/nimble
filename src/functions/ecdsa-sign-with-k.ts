@@ -1,5 +1,5 @@
-import { BN_SIZE, PT_SIZE, getMemoryBuffer, getEcdsaExports, writeBN, readBN } from '../wasm/wasm-secp256k1';
 import { Point, Signature } from 'types/general';
+import { BN_SIZE, PT_SIZE, getMemoryBuffer, getEcdsaExports, writeBN, readBN } from 'run-wasm/wasm-secp256k1';
 
 export default function ecdsaSignWithK(
 	hash32: Uint8Array,

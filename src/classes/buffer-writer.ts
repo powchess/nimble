@@ -1,5 +1,6 @@
 export default class BufferWriter {
 	buffers: Uint8Array[];
+
 	length: number;
 
 	constructor() {

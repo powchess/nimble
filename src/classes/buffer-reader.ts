@@ -1,5 +1,6 @@
 export default class BufferReader {
 	public buffer: Uint8Array;
+
 	public pos: number;
 
 	constructor(buffer: Uint8Array, pos = 0) {

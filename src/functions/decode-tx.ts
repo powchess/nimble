@@ -1,6 +1,6 @@
+import { Input, Output } from 'classes/transaction';
 import BufferReader from '../classes/buffer-reader';
 import readTx from './read-tx';
-import { Input, Output } from 'classes/transaction';
 
 export default function decodeTx(buffer: Uint8Array): {
 	version: number;

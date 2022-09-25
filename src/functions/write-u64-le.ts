@@ -15,9 +15,9 @@ export default function writeU64LE(writer: BufferWriter, n: number): BufferWrite
 	buffer[4] = n % 256;
 	n = Math.floor(n / 256);
 	buffer[5] = n % 256;
-	n = n >> 8;
+	n >>= 8;
 	buffer[6] = n % 256;
-	n = n >> 8;
+	n >>= 8;
 	buffer[7] = n;
 
 	return writer.write(buffer);

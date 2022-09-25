@@ -7,9 +7,7 @@ const subtleCrypto = typeof window !== 'undefined' && window.crypto && window.cr
 let sha256Async: (data: Uint8Array) => Promise<Uint8Array>;
 
 if (typeof VARIANT !== 'undefined' && VARIANT === 'browser' && subtleCrypto) {
-	sha256Async = async (data) => {
-		return new Uint8Array(await subtleCrypto.digest('SHA-256', new Uint8Array(data)));
-	};
+	sha256Async = async (data) => new Uint8Array(await subtleCrypto.digest('SHA-256', new Uint8Array(data)));
 } else {
 	sha256Async = asyncify(sha256);
 }

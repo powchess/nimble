@@ -1,5 +1,5 @@
-import evalScript from './eval-script';
 import Transaction from 'classes/transaction';
+import evalScript from './eval-script';
 
 function verifyScript(
 	unlockScript: Uint8Array,
@@ -13,15 +13,12 @@ function verifyScript(
 
 	if (async) {
 		// @ts-ignore
-		return vm.then((vm) => {
-			return vm.error ? Promise.reject(vm.error) : vm.success;
-		});
-	} else {
-		// @ts-ignore
-		if (vm.error) throw vm.error;
-		// @ts-ignore
-		return vm.success;
+		return vm.then((vm) => (vm.error ? Promise.reject(vm.error) : vm.success));
 	}
+	// @ts-ignore
+	if (vm.error) throw vm.error;
+	// @ts-ignore
+	return vm.success;
 }
 
 export default verifyScript;

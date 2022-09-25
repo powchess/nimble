@@ -1,7 +1,7 @@
 import decodeBase58 from './decode-base58';
 import sha256d from './sha256d';
 
-export default function decodeBase58Check(str: string): { version: number, payload: Uint8Array} {
+export default function decodeBase58Check(str: string): { version: number; payload: Uint8Array } {
 	const arr = decodeBase58(str);
 
 	const version = arr[0];

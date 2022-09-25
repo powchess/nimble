@@ -1,9 +1,9 @@
+import BufferReader from 'classes/buffer-reader';
+import { Input, Output } from 'classes/transaction';
 import encodeHex from './encode-hex';
 import readU32LE from './read-u32-le';
 import readU64LE from './read-u64-le';
 import readVarint from './read-varint';
-import BufferReader from 'classes/buffer-reader';
-import { Input, Output } from 'classes/transaction';
 
 export default function readTx(reader: BufferReader): {
 	version: number;

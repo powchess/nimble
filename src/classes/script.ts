@@ -7,9 +7,11 @@ import decodeScriptChunks from '../functions/decode-script-chunks';
 import isBuffer from '../functions/is-buffer';
 import encodeASM from '../functions/encode-asm';
 import decodeASM from '../functions/decode-asm';
+/* eslint-disable import/no-cycle */
 import Address from './address';
 import PublicKey from './public-key';
-import nimble from '../../index';
+import nimble from '../index';
+/* eslint-enable import/no-cycle */
 
 // These WeakMap caches allow the objects themselves to maintain their immutability
 const SCRIPT_TO_CHUNKS_CACHE = new WeakMap();
@@ -26,15 +28,6 @@ export default class Script {
 		// We can't freeze the underlying buffer unfortunately because of a limitation in JS, and copying to
 		// an object we can freeze, like Array, is too slow. https://github.com/tc39/proposal-limited-arraybuffer
 		Object.freeze(this);
-
-		// Proxy the script so it may be used in place of a buffer in functions
-		return new Proxy(this, {
-			get: (target, prop, receiver) => {
-				if (prop === Symbol.iterator) return target.buffer[Symbol.iterator].bind(target.buffer);
-				if (typeof prop !== 'symbol' && Number.isInteger(parseInt(prop))) return target.buffer[parseInt(prop)];
-				return Reflect.get(target, prop, receiver);
-			},
-		});
 	}
 
 	static fromString(str: string) {

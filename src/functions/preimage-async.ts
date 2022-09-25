@@ -1,5 +1,5 @@
-import preimage from './preimage';
 import Transaction from 'classes/transaction';
+import preimage from './preimage';
 
 export default async function preimageAsync(
 	tx: Transaction,
@@ -8,5 +8,5 @@ export default async function preimageAsync(
 	parentSatoshis: number,
 	sighashFlags: number
 ) {
-	return await preimage(tx, vin, parentScript, parentSatoshis, sighashFlags, true);
+	return preimage(tx, vin, parentScript, parentSatoshis, sighashFlags, true);
 }

@@ -1,7 +1,7 @@
 import VARIANT from 'constants/variant';
 import { getMemoryBuffer } from 'wasm/wasm-secp256k1';
-import { checkAvailableMemory, getSha256 } from '../wasm/wasm-hashes';
 import { createHash } from 'crypto';
+import { checkAvailableMemory, getSha256 } from 'run-wasm/wasm-hashes';
 
 let sha256: (data: Uint8Array) => Uint8Array;
 

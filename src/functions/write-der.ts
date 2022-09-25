@@ -1,5 +1,5 @@
-import BufferWriter from '../classes/buffer-writer';
 import { Signature } from 'types/general';
+import BufferWriter from '../classes/buffer-writer';
 
 export default function writeDER(writer: BufferWriter, signature: Signature): void {
 	const r = signature.r[0] & 0x80 ? [0x00].concat(Array.from(signature.r)) : signature.r;

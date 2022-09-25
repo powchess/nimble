@@ -1,3 +1,5 @@
+/* eslint-disable max-classes-per-file */
+import PublicKey from 'classes/public-key';
 import generateTxSignature from '../functions/generate-tx-signature';
 import createP2PKHLockScript from '../functions/create-p2pkh-lock-script';
 import encodeHex from '../functions/encode-hex';
@@ -10,31 +12,94 @@ import areBuffersEqual from '../functions/are-buffers-equal';
 import decodeTx from '../functions/decode-tx';
 import encodeTx from '../functions/encode-tx';
 import calculateTxid from '../functions/calculate-txid';
-import PrivateKey from './private-key';
-import PublicKey from 'classes/public-key';
-import Address from './address';
-import Script from './script';
 import BufferWriter from './buffer-writer';
 import isBuffer from '../functions/is-buffer';
 import verifyTx from '../functions/verify-tx';
-import nimble from '../../index';
+/* eslint-disable import/no-cycle */
+import PrivateKey from './private-key';
+import Address from './address';
+import Script from './script';
+import nimble from '../index';
+/* eslint-enable import/no-cycle */
 
 // These WeakMap caches allow the objects themselves to maintain their immutability
 const TRANSACTION_TO_TXID_CACHE = new WeakMap();
 
+function verifySatoshis(satoshis: number) {
+	if (!Number.isInteger(satoshis) || satoshis < 0 || satoshis > Number.MAX_SAFE_INTEGER) {
+		throw new Error(`bad satoshis: ${satoshis}`);
+	}
+	return satoshis;
+}
+
+function verifySequence(sequence: number) {
+	if (!Number.isInteger(sequence) || sequence < 0 || sequence > 0xffffffff) {
+		throw new Error(`bad sequence: ${sequence}`);
+	}
+	return sequence;
+}
+
+export class Input {
+	txid: string;
+
+	vout: number;
+
+	script: Script;
+
+	sequence: number;
+
+	output: Output;
+
+	constructor(
+		txid: string,
+		vout: number,
+		output: Output,
+		script: Script | Uint8Array | string = new Uint8Array([]),
+		sequence = 0
+	) {
+		if (!isHex(txid) || txid.length !== 64) throw new Error(`bad txid: ${txid}`);
+		if (!Number.isInteger(vout) || vout < 0) throw new Error(`bad vout: ${vout}`);
+
+		this.txid = txid;
+		this.vout = vout;
+		this.script = Script.from(script);
+		this.sequence = verifySequence(sequence);
+		this.output = output;
+	}
+}
+
+export class Output {
+	script: Script;
+
+	satoshis: number;
+
+	constructor(script: Script | Uint8Array | string, satoshis: number) {
+		this.script = Script.from(script);
+		this.satoshis = verifySatoshis(satoshis);
+	}
+}
+
 export default class Transaction {
 	version: number;
+
 	inputs: Input[];
+
 	outputs: Output[];
+
 	locktime: number;
+
 	feePerKb: number;
+
 	changeOutput: Output | undefined;
 
 	_hashPrevouts: Uint8Array | undefined;
+
 	_hashSequence: Uint8Array | undefined;
+
 	_hashOutputsAll: Uint8Array | undefined;
 
 	Input = Input;
+
 	Output = Output;
 
 	constructor() {
@@ -80,7 +145,8 @@ export default class Transaction {
 	}
 
 	toBuffer() {
-		this._calculateChange();
+		// eslint-disable-next-line no-underscore-dangle
+		this.calculateChange();
 		return encodeTx(this);
 	}
 
@@ -112,18 +178,18 @@ export default class Transaction {
 		if (Object.isFrozen(this)) throw new Error('transaction finalized');
 
 		if (Array.isArray(output)) {
-			output.forEach((output) => this.from(output, tx));
+			output.forEach((out) => this.from(out, tx));
 			return this;
 		}
 
 		const transactions = Array.isArray(tx) ? tx : [tx];
-		const transaction = transactions.find((tx) => tx.outputs.indexOf(output) >= 0);
+		const transaction = transactions.find((transx) => transx.outputs.indexOf(output) >= 0);
 		if (!transaction) return this;
 
 		const vout = transaction.outputs.indexOf(output);
 		const txid = transaction.hash;
 
-		const input = new Input(txid, vout, new Uint8Array([]), 0xffffffff, output);
+		const input = new Input(txid, vout, output, new Uint8Array([]), 0xffffffff);
 		this.inputs.push(input);
 
 		return this;
@@ -132,10 +198,10 @@ export default class Transaction {
 	to(address: string | PublicKey | Address, satoshis: number) {
 		if (Object.isFrozen(this)) throw new Error('transaction finalized');
 
-		address = Address.from(address);
+		const newAddress = Address.from(address);
 		verifySatoshis(satoshis);
 
-		const script = createP2PKHLockScript(address.pubkeyhash);
+		const script = createP2PKHLockScript(newAddress.pubkeyhash);
 		const output = new Output(script, satoshis);
 		this.outputs.push(output);
 
@@ -171,15 +237,11 @@ export default class Transaction {
 	sign(privateKey: PrivateKey | string) {
 		if (Object.isFrozen(this)) throw new Error('transaction finalized');
 
-		if (typeof privateKey === 'string') {
-			privateKey = PrivateKey.fromString(privateKey);
-		}
-
-		if (!(privateKey instanceof PrivateKey)) throw new Error(`not a private key: ${privateKey}`);
+		const privKey = typeof privateKey === 'string' ? PrivateKey.fromString(privateKey) : privateKey;
 
 		for (let vin = 0; vin < this.inputs.length; vin++) {
 			const input = this.inputs[vin];
-			const output = input.output;
+			const { output } = input;
 
 			if (input.script.length) continue;
 			if (!output) continue;
@@ -189,10 +251,7 @@ export default class Transaction {
 
 			if (!isP2PKHLockScript(output.script.buffer)) continue;
 			if (
-				!areBuffersEqual(
-					extractP2PKHLockScriptPubkeyhash(output.script.buffer),
-					privateKey.toAddress().pubkeyhash
-				)
+				!areBuffersEqual(extractP2PKHLockScriptPubkeyhash(output.script.buffer), privKey.toAddress().pubkeyhash)
 			)
 				continue;
 
@@ -201,13 +260,13 @@ export default class Transaction {
 				vin,
 				outputScript.buffer,
 				outputSatoshis,
-				privateKey.number,
-				privateKey.toPublicKey().point
+				privKey.number,
+				privKey.toPublicKey().point
 			);
 
 			const writer = new BufferWriter();
 			writePushData(writer, txsignature);
-			writePushData(writer, privateKey.toPublicKey().toBuffer());
+			writePushData(writer, privKey.toPublicKey().toBuffer());
 			const script = writer.toBuffer();
 
 			input.script = Script.fromBuffer(script);
@@ -227,7 +286,7 @@ export default class Transaction {
 	finalize() {
 		if (Object.isFrozen(this)) return this;
 
-		this._calculateChange();
+		this.calculateChange();
 
 		Object.freeze(this);
 		Object.freeze(this.inputs);
@@ -238,7 +297,7 @@ export default class Transaction {
 		return this;
 	}
 
-	_calculateChange() {
+	calculateChange() {
 		if (Object.isFrozen(this)) return;
 		if (!this.changeOutput) return;
 
@@ -270,53 +329,4 @@ export default class Transaction {
 		this.feePerKb = satoshis;
 		return this;
 	}
-}
-
-export class Input {
-	txid: string;
-	vout: number;
-	script: Script;
-	sequence: number;
-	output: Output;
-
-	constructor(
-		txid: string,
-		vout: number,
-		script: Script | Uint8Array | string = new Uint8Array([]),
-		sequence = 0,
-		output: Output
-	) {
-		if (!isHex(txid) || txid.length !== 64) throw new Error(`bad txid: ${txid}`);
-		if (!Number.isInteger(vout) || vout < 0) throw new Error(`bad vout: ${vout}`);
-
-		this.txid = txid;
-		this.vout = vout;
-		this.script = Script.from(script);
-		this.sequence = verifySequence(sequence);
-		this.output = output;
-	}
-}
-
-export class Output {
-	script: Script;
-	satoshis: number;
-
-	constructor(script: Script | Uint8Array | string, satoshis: number) {
-		this.script = Script.from(script);
-		this.satoshis = verifySatoshis(satoshis);
-	}
-}
-
-function verifySatoshis(satoshis: number) {
-	if (!Number.isInteger(satoshis) || satoshis < 0 || satoshis > Number.MAX_SAFE_INTEGER) {
-		throw new Error(`bad satoshis: ${satoshis}`);
-	}
-	return satoshis;
-}
-
-function verifySequence(sequence: number) {
-	if (!Number.isInteger(sequence) || sequence < 0 || sequence > 0xffffffff) {
-		throw new Error(`bad sequence: ${sequence}`);
-	}
-	return sequence;
 }

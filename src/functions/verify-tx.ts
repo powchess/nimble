@@ -1,7 +1,7 @@
-import encodeTx from './encode-tx';
-import verifyScript from './verify-script';
 import Transaction from 'classes/transaction';
 import { ParentTx } from 'types/general';
+import encodeTx from './encode-tx';
+import verifyScript from './verify-script';
 
 export default function verifyTx(tx: Transaction, parents: ParentTx[], minFeePerKb: number) {
 	const version = typeof tx.version !== 'undefined' ? tx.version : 1;

@@ -1,4 +1,4 @@
-import { getMemoryBuffer, getRipemd160, checkAvailableMemory } from '../wasm/wasm-hashes';
+import { getMemoryBuffer, getRipemd160, checkAvailableMemory } from 'run-wasm/wasm-hashes';
 
 export default function ripemd160(data: Uint8Array): Uint8Array {
 	const wasmMemory = getMemoryBuffer();

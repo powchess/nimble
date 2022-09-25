@@ -1,8 +1,8 @@
+import Transaction from 'classes/transaction';
+import { Point } from 'types/general';
 import decodeDER from './decode-der';
 import sighash from './sighash';
 import ecdsaVerify from './ecdsa-verify';
-import Transaction from 'classes/transaction';
-import { Point } from 'types/general';
 
 export default function verifyTxSignature(
 	tx: Transaction,

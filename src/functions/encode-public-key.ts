@@ -1,6 +1,6 @@
 import { Point } from 'types/general';
 
-export default function encodePublicKey(publicKeyPoint: Point, compressed: boolean = true): Uint8Array {
+export default function encodePublicKey(publicKeyPoint: Point, compressed = true): Uint8Array {
 	if (!compressed) {
 		const arr = new Uint8Array(65);
 		arr[0] = 4;

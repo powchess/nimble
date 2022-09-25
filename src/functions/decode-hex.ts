@@ -5,7 +5,7 @@ import isHex from './is-hex';
 // to avoid accidentally importing the Buffer shim in the browser.
 
 export default function decodeHex(hex: string): Uint8Array {
-	if (hex.length % 2 === 1) hex = '0' + hex;
+	if (hex.length % 2 === 1) hex = `0${hex}`;
 
 	if (!isHex(hex)) throw new Error('bad hex char');
 
@@ -19,7 +19,6 @@ export default function decodeHex(hex: string): Uint8Array {
 			arr[i] = byte;
 		}
 		return arr;
-	} else {
-		return Buffer.from(hex, 'hex');
 	}
+	return Buffer.from(hex, 'hex');
 }

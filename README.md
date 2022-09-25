@@ -25,37 +25,34 @@ nimble's classes are intended to feel familiar to developers that use bsv.js v1 
 Generate a new random private key
 
 ```javascript
-const privateKey = nimble.PrivateKey.fromRandom()
+const privateKey = nimble.PrivateKey.fromRandom();
 
-console.log(privateKey.toString())
+console.log(privateKey.toString());
 ```
 
 Print the public key and address for a private key
 
 ```javascript
-const privateKey = nimble.PrivateKey.fromString('<private-key-wif-string>')
+const privateKey = nimble.PrivateKey.fromString('<private-key-wif-string>');
 
-console.log(privateKey.toPublicKey().toString())
-console.log(privateKey.toAddress().toString())
+console.log(privateKey.toPublicKey().toString());
+console.log(privateKey.toAddress().toString());
 ```
 
 Create a simple P2PKH payment transaction
 
 ```javascript
-const transaction = new nimble.Transaction()
-    .from(utxo)
-    .to(address, satoshis)
-    .sign(privateKey)
+const transaction = new nimble.Transaction().from(utxo).to(address, satoshis).sign(privateKey);
 
-const rawtx = transaction.toString()
+const rawtx = transaction.toString();
 ```
 
 Calculate a transaction's txid
 
 ```javascript
-const transaction = nimble.Transaction.fromString('<rawtx>')
+const transaction = nimble.Transaction.fromString('<rawtx>');
 
-console.log(transaction.hash)
+console.log(transaction.hash);
 ```
 
 ## Advanced API
@@ -65,17 +62,17 @@ nimble also has a lower-level API for advanced developers. Every class exampled 
 Hash a message with SHA-256
 
 ```javascript
-const hash = nimble.functions.sha256(buffer)
+const hash = nimble.functions.sha256(buffer);
 ```
 
 Stream decode several transactions
 
 ```javascript
-const reader = new nimble.classes.BufferReader(data)
-const tx1 = nimble.functions.readTx(reader)
-const tx2 = nimble.functions.readTx(reader)
-const tx3 = nimble.functions.readTx(reader)
-reader.close()
+const reader = new nimble.classes.BufferReader(data);
+const tx1 = nimble.functions.readTx(reader);
+const tx2 = nimble.functions.readTx(reader);
+const tx3 = nimble.functions.readTx(reader);
+reader.close();
 ```
 
 There are asynchronous versions of the more expensive functions so check the functions directory.
@@ -87,7 +84,7 @@ Testnet mode must be enabled to correctly generate private keys and addresses on
 To enable, set the global testnet flag to `true`:
 
 ```javascript
-nimble.testnet = true
+nimble.testnet = true;
 ```
 
 ## Using nimble piecemeal
@@ -95,11 +92,11 @@ nimble.testnet = true
 For smaller builds and faster load times, you can take only the parts of the library you need instead of the whole thing. We've handily separated out every function and class into its own module. Just append the subpath to the class or function in your `require()` or `import` paths:
 
 ```javascript
-const decodeTx = require('nimble/functions/decode-tx')
-const calculateTxid = require('nimble/functions/calculate-txid')
+const decodeTx = require('nimble/functions/decode-tx');
+const calculateTxid = require('nimble/functions/calculate-txid');
 
-const tx = decodeTx(buffer)
-const txid = calculateTxid(buffer)
+const tx = decodeTx(buffer);
+const txid = calculateTxid(buffer);
 ```
 
 You can optimize the size further by telling your bundler where you intend to use the library by setting the global variable `VARIANT` to either `"node"` or `"browser"`.
@@ -131,50 +128,50 @@ nimble should always be faster than bsv.js and certainly fast enough for everyda
 
 **Performance Comparison**
 
-| Library  | Load (ms) | Generate Keypair (ms) | Calculate Address (ms) | Sign Tx (ms) | Verify Signature (ms) | SHA256 (ms) |
-| -------- | --------- | --------------------- | ---------------------- | ------------ | --------------------- | ----------- |
-| nimble   | 9         | 1.6                   | 0                      | 1.7          | 6                     | 0           |
-| bsv1     | 21        | 2                     | 0.2                    | 4.4          | 3.2                   | 0.1         |
-| bsv2     | 25        | 1.4                   | 0.2                    | 2            | 5.2                   | 0.1         |
-| bsv-wasm | 25        | 0.3                   | 0                      | 0.4          | 0.7                   | 0           |
+| Library | Load (ms) | Generate Keypair (ms) | Calculate Address (ms) | Sign Tx (ms) | Verify Signature (ms) | SHA256 (ms) |
+| --- | --- | --- | --- | --- | --- | --- |
+| nimble | 9 | 1.6 | 0 | 1.7 | 6 | 0 |
+| bsv1 | 21 | 2 | 0.2 | 4.4 | 3.2 | 0.1 |
+| bsv2 | 25 | 1.4 | 0.2 | 2 | 5.2 | 0.1 |
+| bsv-wasm | 25 | 0.3 | 0 | 0.4 | 0.7 | 0 |
 
-* Load performance was captured by loading the library from cache and calling any init functions
-* All others were captured by performing the operation 100 times in Chrome and taking the average
+-   Load performance was captured by loading the library from cache and calling any init functions
+-   All others were captured by performing the operation 100 times in Chrome and taking the average
 
 **Feature Comparison**
 
-| Feature                      | nimble | bsv1 | bsv2 | bsv-wasm | 
+| Feature                      | nimble | bsv1 | bsv2 | bsv-wasm |
 | ---------------------------- | ------ | ---- | ---- | -------- |
-| Generate keypairs            | ✅ | ✅ | ✅ | ✅ |
-| Calculate addresses          | ✅ | ✅ | ✅ | ✅ |
-| Encode/decode keys           | ✅ | ✅ | ✅ | ✅ |
-| Serialize transactions       | ✅ | ✅ | ✅ | ✅ |
-| Deserialize transactions     | ✅ | ✅ | ✅ | ✅ |
-| Transaction builder          | ✅ | ✅ | ❌ | ❌ |
-| Deconstruct scripts          | ✅ | ✅ | ✅ | ❌ |
-| Custom genesis scripts       | ✅ | ❌ | ✅ | ✅ |
-| Script interpreter           | ✅ | ✅ | ✅ | ❌ |
-| Generate signatures          | ✅ | ✅ | ✅ | ✅ |
-| Verify signatures            | ✅ | ✅ | ✅ | ✅ |
-| Recover keys from signatures | ❌ | ❌ | ❌ | ✅ |
-| Sighash flags                | ✅ | ✅ | ✅ | ✅ |
-| P2PKH support                | ✅ | ✅ | ✅ | ✅ |
-| Multisig support             | ❌ | ✅ | ✅ | ❌ |
-| Threshold signatures         | ❌ | ❌ | ❌ | ❌ |
-| SHA-256                      | ✅ | ✅ | ✅ | ✅ |
-| SHA-1                        | ✅ | ✅ | ✅ | ✅ |
-| SHA-512                      | ❌ | ✅ | ✅ | ✅ |
-| RIPEMD-160                   | ✅ | ✅ | ✅ | ✅ |
-| Sighash function             | ✅ | ✅ | ✅ | ✅ |
-| Testnet support              | ✅ | ✅ | ✅ | ❌ |
-| Synchronous initialization   | ✅ | ✅ | ✅ | ❌ |
-| Automatic memory management  | ✅ | ✅ | ✅ | ❌ |
-| Use library in parts         | ✅ | ✅ | ✅ | ❌ |
-| Stream decode transactions   | ✅ | ❌ | ✅ | ❌ |
-| Custom elliptic curve math   | ❌ | ✅ | ✅ | ❌ |
-| Seed phrase mnemonics        | ❌ | ✅ | ✅ | ❌ |
-| ECIES                        | ❌ | ✅ | ✅ | ✅ |
-| HD keys                      | ❌ | ✅ | ✅ | ✅ |
+| Generate keypairs            | ✅     | ✅   | ✅   | ✅       |
+| Calculate addresses          | ✅     | ✅   | ✅   | ✅       |
+| Encode/decode keys           | ✅     | ✅   | ✅   | ✅       |
+| Serialize transactions       | ✅     | ✅   | ✅   | ✅       |
+| Deserialize transactions     | ✅     | ✅   | ✅   | ✅       |
+| Transaction builder          | ✅     | ✅   | ❌   | ❌       |
+| Deconstruct scripts          | ✅     | ✅   | ✅   | ❌       |
+| Custom genesis scripts       | ✅     | ❌   | ✅   | ✅       |
+| Script interpreter           | ✅     | ✅   | ✅   | ❌       |
+| Generate signatures          | ✅     | ✅   | ✅   | ✅       |
+| Verify signatures            | ✅     | ✅   | ✅   | ✅       |
+| Recover keys from signatures | ❌     | ❌   | ❌   | ✅       |
+| Sighash flags                | ✅     | ✅   | ✅   | ✅       |
+| P2PKH support                | ✅     | ✅   | ✅   | ✅       |
+| Multisig support             | ❌     | ✅   | ✅   | ❌       |
+| Threshold signatures         | ❌     | ❌   | ❌   | ❌       |
+| SHA-256                      | ✅     | ✅   | ✅   | ✅       |
+| SHA-1                        | ✅     | ✅   | ✅   | ✅       |
+| SHA-512                      | ❌     | ✅   | ✅   | ✅       |
+| RIPEMD-160                   | ✅     | ✅   | ✅   | ✅       |
+| Sighash function             | ✅     | ✅   | ✅   | ✅       |
+| Testnet support              | ✅     | ✅   | ✅   | ❌       |
+| Synchronous initialization   | ✅     | ✅   | ✅   | ❌       |
+| Automatic memory management  | ✅     | ✅   | ✅   | ❌       |
+| Use library in parts         | ✅     | ✅   | ✅   | ❌       |
+| Stream decode transactions   | ✅     | ❌   | ✅   | ❌       |
+| Custom elliptic curve math   | ❌     | ✅   | ✅   | ❌       |
+| Seed phrase mnemonics        | ❌     | ✅   | ✅   | ❌       |
+| ECIES                        | ❌     | ✅   | ✅   | ✅       |
+| HD keys                      | ❌     | ✅   | ✅   | ✅       |
 
 ## Contributing
 
@@ -182,9 +179,9 @@ Please send pull requests for bug fixes, code optimizations, and feature proposa
 
 Here are a few guidelines for contributions:
 
-* New features should be implemented and tested as standalone functions first
-* Class methods should always validate their parameters
-* Please try not to regress code coverage
+-   New features should be implemented and tested as standalone functions first
+-   Class methods should always validate their parameters
+-   Please try not to regress code coverage
 
 Thanks!
 
@@ -198,21 +195,21 @@ If you find a security issue, please email `security@run.network`.
 
 ### NPM commands
 
-- `npm run lint` - Lint and automatically fix errors
-- `npm run build` - Build outputs
-- `npm run test` - Test library quickly
-- `npm run test:cover` - Test and measure code coverage
-- `npm run test:node` - Test the minified node build
-- `npm run test:browser` - Test the minified browser build (Chrome default)
+-   `npm run lint` - Lint and automatically fix errors
+-   `npm run build` - Build outputs
+-   `npm run test` - Test library quickly
+-   `npm run test:cover` - Test and measure code coverage
+-   `npm run test:node` - Test the minified node build
+-   `npm run test:browser` - Test the minified browser build (Chrome default)
 
 ### Configuring the tests
 
 Various environment variables may be used to configure the tests:
 
-| Name              | Description                                     | Possible Values                                | Default     |
-|-------------------|-------------------------------------------------|------------------------------------------------|-------------|
-| `BROWSER`         | Browser used for testing                        | `chrome`, `firefox`, `safari`, `MicrosoftEdge` | `chrome`    |
+| Name      | Description              | Possible Values                                | Default  |
+| --------- | ------------------------ | ---------------------------------------------- | -------- |
+| `BROWSER` | Browser used for testing | `chrome`, `firefox`, `safari`, `MicrosoftEdge` | `chrome` |
 
 #### Examples
 
-- `env BROWSER=safari npm run test:browser` - Test the browser build on Safari
+-   `env BROWSER=safari npm run test:browser` - Test the browser build on Safari

@@ -1,3 +1,4 @@
+import Transaction from 'classes/transaction';
 import BufferWriter from '../classes/buffer-writer';
 import writeU32LE from './write-u32-le';
 import writeU64LE from './write-u64-le';
@@ -5,7 +6,6 @@ import writeVarint from './write-varint';
 import decodeHex from './decode-hex';
 import sha256d from './sha256d';
 import sha256Async from './sha256-async';
-import Transaction from 'classes/transaction';
 
 export default async function preimage(
 	tx: Transaction,
@@ -13,7 +13,7 @@ export default async function preimage(
 	parentScript: Uint8Array,
 	parentSatoshis: number,
 	sighashFlags: number,
-	async: boolean = false
+	async = false
 ) {
 	const input = tx.inputs[vin];
 	const outputs = tx.outputs || [];
@@ -112,7 +112,6 @@ export default async function preimage(
 
 	if (async) {
 		return Promise.all([hashPrevouts, hashSequence, hashOutputs]).then((args) => getPreimage(...args));
-	} else {
-		return getPreimage(hashPrevouts, hashSequence, hashOutputs);
 	}
+	return getPreimage(hashPrevouts, hashSequence, hashOutputs);
 }

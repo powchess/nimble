@@ -4,24 +4,24 @@ The directories here each represent different WebAssembly modules used by nimble
 
 **ripemd160**
 
-- Optimized version of RIPEMD160 hashing algorithm. Used to generate addresses and validate scripts.
-- Shares a memory space with the other hashing functions
+-   Optimized version of RIPEMD160 hashing algorithm. Used to generate addresses and validate scripts.
+-   Shares a memory space with the other hashing functions
 
 **sha1**
 
-- Optimized version of SHA1 hashing algorithm. Used to validate scripts.
-- Shares a memory space with the other hashing functions
+-   Optimized version of SHA1 hashing algorithm. Used to validate scripts.
+-   Shares a memory space with the other hashing functions
 
 **sha256**
 
-- Optimized version of SHA256 hashing algorithm. The default hashing algorithm used in many places in Bitcoin and nimble.
-- Shares a memory space with the other hashing functions
+-   Optimized version of SHA256 hashing algorithm. The default hashing algorithm used in many places in Bitcoin and nimble.
+-   Shares a memory space with the other hashing functions
 
 **secp256k1**
 
-- SECP256K1 logic based on Vitalik Buterin's [pybitcointools](https://github.com/vbuterin/pybitcointools/blob/aeb0a2bbb8bbfe421432d776c649650eaeb882a5/bitcoin/main.py), which is simpler and more concise than Peter Wuille's heavily-optimized [lib-secp256k1](https://github.com/bitcoin-core/secp256k1). 
-- Hand-written big number implementation for signed integers
-- Four WASM files are used - two for big numbers, and one for SECP256K1, another for ECDSA. They share a WASM memory space with a 1M memory offset.
+-   SECP256K1 logic based on Vitalik Buterin's [pybitcointools](https://github.com/vbuterin/pybitcointools/blob/aeb0a2bbb8bbfe421432d776c649650eaeb882a5/bitcoin/main.py), which is simpler and more concise than Peter Wuille's heavily-optimized [lib-secp256k1](https://github.com/bitcoin-core/secp256k1).
+-   Hand-written big number implementation for signed integers
+-   Four WASM files are used - two for big numbers, and one for SECP256K1, another for ECDSA. They share a WASM memory space with a 1M memory offset.
 
 ## Setup
 

@@ -1,5 +1,5 @@
 import { Point } from 'types/general';
-import { PT_SIZE, BN_SIZE, getMemoryBuffer, getEcdsaExports, writeBN } from '../wasm/wasm-secp256k1';
+import { PT_SIZE, BN_SIZE, getMemoryBuffer, getEcdsaExports, writeBN } from 'run-wasm/wasm-secp256k1';
 
 function verifyPoint(publicKeyPoint: Point): Point {
 	const memory = getMemoryBuffer();

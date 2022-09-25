@@ -1,9 +1,9 @@
+import BufferWriter from 'classes/buffer-writer';
+import Transaction from 'classes/transaction';
 import decodeHex from './decode-hex';
 import writeU32LE from './write-u32-le';
 import writeU64LE from './write-u64-le';
 import writeVarint from './write-varint';
-import BufferWriter from 'classes/buffer-writer';
-import Transaction from 'classes/transaction';
 
 export default function writeTx(writer: BufferWriter, tx: Transaction): void {
 	const version = typeof tx.version === 'undefined' ? 1 : tx.version;

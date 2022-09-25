@@ -1,6 +1,6 @@
-import { BN_SIZE, getMemoryBuffer, getSecp256k1Exports, writeBN, readBN } from '../wasm/wasm-secp256k1';
-import verifyPoint from './verify-point';
 import { Point } from 'types/general';
+import { BN_SIZE, getMemoryBuffer, getSecp256k1Exports, writeBN, readBN } from 'run-wasm/wasm-secp256k1';
+import verifyPoint from './verify-point';
 
 export default function decodePublicKey(buffer: Uint8Array): Point {
 	const prefix = buffer[0];
