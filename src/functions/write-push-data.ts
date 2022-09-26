@@ -13,6 +13,7 @@ export default function writePushData(writer: BufferWriter, buffer: Uint8Array):
 		writer.write(new Uint8Array([76, buffer.length])); // OP_PUSHDATA1
 		writer.write(buffer);
 	} else if (buffer.length <= 0xffff) {
+		// eslint-disable-next-line no-bitwise
 		writer.write(new Uint8Array([77, buffer.length % 256, buffer.length >> 8])); // OP_PUSHDATA2
 		writer.write(buffer);
 	} else if (buffer.length <= 0xffffffff) {

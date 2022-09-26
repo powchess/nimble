@@ -1,10 +1,12 @@
-import BufferReader from 'classes/buffer-reader';
+/* eslint-disable no-bitwise */
+import BufferReader from '../classes/buffer-reader';
 
 export default function readU64LE(reader: BufferReader): number {
 	reader.checkRemaining(8);
 
 	const { buffer, pos: i } = reader;
 
+	// eslint-disable-next-line no-param-reassign
 	reader.pos += 8;
 
 	// We can't use a bit shift for the high-order byte because in JS this math is 32-bit signed.

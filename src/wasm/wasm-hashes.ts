@@ -1,4 +1,5 @@
-import decodeBase64 from 'functions/decode-base64';
+// eslint-disable-next-line import/no-relative-packages
+import decodeBase64 from '../functions/decode-base64';
 
 const { WebAssembly } = global;
 
@@ -35,6 +36,14 @@ export const getMemoryBuffer = () => {
 	return memoryBuffer;
 };
 
+function compileInstance(base64: string) {
+	const bytes = decodeBase64(base64);
+	const module = new WebAssembly.Module(bytes);
+	const imports = { env: { memory: getMemory() } };
+	const instance = new WebAssembly.Instance(module, imports);
+	return instance;
+}
+
 export const getRipemd160 = () => {
 	ripemd160 = ripemd160 || compileInstance(RIPEMD160_WASM_BASE64).exports.ripemd160;
 	return ripemd160;
@@ -49,11 +58,3 @@ export const getSha256 = () => {
 	sha256 = sha256 || compileInstance(SHA256_WASM_BASE64).exports.sha256;
 	return sha256;
 };
-
-function compileInstance(base64: string) {
-	const bytes = decodeBase64(base64);
-	const module = new WebAssembly.Module(bytes);
-	const imports = { env: { memory: getMemory() } };
-	const instance = new WebAssembly.Instance(module, imports);
-	return instance;
-}

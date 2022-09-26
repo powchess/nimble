@@ -1,4 +1,4 @@
-import { Point } from 'types/general';
+import { Point } from '../types/general';
 import sha256ripemd160 from './sha256ripemd160';
 import encodePublicKey from './encode-public-key';
 

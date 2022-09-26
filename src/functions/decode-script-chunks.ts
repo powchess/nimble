@@ -1,4 +1,4 @@
-import { Chunk } from 'types/general';
+import { Chunk } from '../types/general';
 
 export default function decodeScriptChunks(script: Uint8Array): Chunk[] {
 	const chunks: Chunk[] = [];
@@ -20,6 +20,7 @@ export default function decodeScriptChunks(script: Uint8Array): Chunk[] {
 			i += len;
 		} else if (opcode === 77) {
 			// OP_PUSHDATA2
+			// eslint-disable-next-line no-bitwise
 			const len = script[i] | (script[i + 1] << 8);
 			i += 2;
 			chunks.push({ opcode, buf: script.slice(i, i + len) });

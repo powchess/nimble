@@ -1,4 +1,5 @@
-import decodeBase64 from '@runonbitcoin/nimble/src/functions/decode-base64';
+// eslint-disable-next-line import/no-relative-packages
+import decodeBase64 from '../functions/decode-base64';
 
 const { WebAssembly } = global;
 
@@ -41,11 +42,6 @@ export const getMemoryBuffer = () => {
 	return memoryBuffer;
 };
 
-export const getNPos = () => {
-	getSecp256k1Exports();
-	return nPos;
-};
-
 export const getBnExports = () => {
 	if (!bnInstance) {
 		const bytes = decodeBase64(BN_WASM_BASE64);
@@ -75,13 +71,18 @@ export const getSecp256k1Exports = () => {
 		Object.assign(imports.env, getBnExports(), getBn2Exports());
 		secp256k1Instance = new WebAssembly.Instance(module, imports);
 
-		const memory = getMemoryBuffer();
-		startPosition = memory.length - SECP256K1_INIT_DATA / 2;
+		const mem = getMemoryBuffer();
+		startPosition = mem.length - SECP256K1_INIT_DATA / 2;
 		const secp256k1Init = secp256k1Instance.exports.secp256k1_init as CallableFunction;
 		secp256k1Init(startPosition);
 		nPos = startPosition + BN_SIZE;
 	}
 	return secp256k1Instance.exports;
+};
+
+export const getNPos = () => {
+	getSecp256k1Exports();
+	return nPos;
 };
 
 export const getEcdsaExports = () => {
@@ -97,42 +98,48 @@ export const getEcdsaExports = () => {
 	return ecdsaInstance.exports;
 };
 
-export function writeBN(memory: Uint8Array, pos: number, buffer: Uint8Array) {
+export function writeBN(mem: Uint8Array, pos: number, buffer: Uint8Array) {
 	// Our digits are stored on the WASM side in reverse order, and each digit also in little endian,
 	// so we simply can write each byte in reverse order.
 	const padding = (DIGIT_SIZE - (buffer.length % DIGIT_SIZE)) % DIGIT_SIZE;
 	const length = Math.max(buffer.length + padding, DIGIT_SIZE);
+	const newMem = new Uint8Array(mem);
 	let bytePos = pos + length - 1;
 	for (let i = 0; i < padding; i++) {
-		memory[bytePos--] = 0;
+		newMem[bytePos--] = 0;
 	}
 	buffer.forEach((byte) => {
-		memory[bytePos--] = byte;
+		newMem[bytePos--] = byte;
 	});
-	if (buffer.length === 0) memory[pos] = memory[pos + 1] = memory[pos + 2] = memory[pos + 3] = 0;
-	memory[pos + BN_SIZE - 1] = 0;
-	memory[pos + BN_SIZE - 2] = 0;
-	memory[pos + BN_SIZE - 3] = 0;
-	memory[pos + BN_SIZE - 4] = 0;
-	memory[pos + BN_SIZE - 5] = 0;
-	memory[pos + BN_SIZE - 6] = 0;
-	memory[pos + BN_SIZE - 7] = 0;
-	memory[pos + BN_SIZE - 8] = length / DIGIT_SIZE;
+	if (buffer.length === 0) {
+		newMem[pos] = 0;
+		newMem[pos + 1] = 0;
+		newMem[pos + 2] = 0;
+		newMem[pos + 3] = 0;
+	}
+	newMem[pos + BN_SIZE - 1] = 0;
+	newMem[pos + BN_SIZE - 2] = 0;
+	newMem[pos + BN_SIZE - 3] = 0;
+	newMem[pos + BN_SIZE - 4] = 0;
+	newMem[pos + BN_SIZE - 5] = 0;
+	newMem[pos + BN_SIZE - 6] = 0;
+	newMem[pos + BN_SIZE - 7] = 0;
+	newMem[pos + BN_SIZE - 8] = length / DIGIT_SIZE;
 	const bnUnpad = getBnExports().bn_unpad as CallableFunction;
 	bnUnpad(pos);
 }
 
-export function readBN(memory: Uint8Array, pos: number) {
-	let size = memory[pos + BN_SIZE - 8] * DIGIT_SIZE;
+export function readBN(mem: Uint8Array, pos: number) {
+	let size = mem[pos + BN_SIZE - 8] * DIGIT_SIZE;
 	for (let i = pos + size - 1; i >= pos; i--) {
-		if (memory[i]) break;
+		if (mem[i]) break;
 		size--;
 	}
 	const buffer = new Uint8Array(size);
 	let bytePos = buffer.length - 1;
 	let memoryPos = pos;
 	for (let i = 0; i < size; i++) {
-		buffer[bytePos--] = memory[memoryPos++];
+		buffer[bytePos--] = mem[memoryPos++];
 	}
 	return buffer;
 }

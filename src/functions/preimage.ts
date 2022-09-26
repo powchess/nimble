@@ -1,19 +1,20 @@
-import Transaction from 'classes/transaction';
+/* eslint-disable no-bitwise */
+/* eslint-disable no-param-reassign */
+/* eslint-disable no-underscore-dangle */
+import Transaction from '../classes/transaction';
 import BufferWriter from '../classes/buffer-writer';
 import writeU32LE from './write-u32-le';
 import writeU64LE from './write-u64-le';
 import writeVarint from './write-varint';
 import decodeHex from './decode-hex';
 import sha256d from './sha256d';
-import sha256Async from './sha256-async';
 
 export default async function preimage(
 	tx: Transaction,
 	vin: number,
 	parentScript: Uint8Array,
 	parentSatoshis: number,
-	sighashFlags: number,
-	async = false
+	sighashFlags: number
 ) {
 	const input = tx.inputs[vin];
 	const outputs = tx.outputs || [];
@@ -25,12 +26,12 @@ export default async function preimage(
 	async function getPrevoutsHash() {
 		if (tx._hashPrevouts) return tx._hashPrevouts;
 		const writer = new BufferWriter();
-		tx.inputs.forEach((input) => {
-			writer.write(decodeHex(input.txid).reverse());
-			writeU32LE(writer, input.vout);
+		tx.inputs.forEach((inpt) => {
+			writer.write(decodeHex(inpt.txid).reverse());
+			writeU32LE(writer, inpt.vout);
 		});
-		const preimage = writer.toBuffer();
-		const hashPrevouts = async ? await sha256Async(preimage).then(sha256Async) : sha256d(preimage);
+		const preimg = writer.toBuffer();
+		const hashPrevouts = sha256d(preimg);
 		tx._hashPrevouts = hashPrevouts;
 		return hashPrevouts;
 	}
@@ -38,11 +39,11 @@ export default async function preimage(
 	async function getSequenceHash() {
 		if (tx._hashSequence) return tx._hashSequence;
 		const writer = new BufferWriter();
-		tx.inputs.forEach((input) => {
-			writeU32LE(writer, typeof input.sequence === 'undefined' ? 0xffffffff : input.sequence);
+		tx.inputs.forEach((inpt) => {
+			writeU32LE(writer, typeof inpt.sequence === 'undefined' ? 0xffffffff : inpt.sequence);
 		});
-		const preimage = writer.toBuffer();
-		const hashSequence = async ? await sha256Async(preimage).then(sha256Async) : sha256d(preimage);
+		const preimg = writer.toBuffer();
+		const hashSequence = sha256d(preimg);
 		tx._hashSequence = hashSequence;
 		return hashSequence;
 	}
@@ -55,8 +56,8 @@ export default async function preimage(
 			writeVarint(writer, output.script.length);
 			writer.write(output.script.buffer);
 		});
-		const preimage = writer.toBuffer();
-		const hashOutputsAll = async ? await sha256Async(preimage).then(sha256Async) : sha256d(preimage);
+		const preimg = writer.toBuffer();
+		const hashOutputsAll = sha256d(preimg);
 		tx._hashOutputsAll = hashOutputsAll;
 		return hashOutputsAll;
 	}
@@ -67,8 +68,8 @@ export default async function preimage(
 		writeU64LE(writer, output.satoshis);
 		writeVarint(writer, output.script.length);
 		writer.write(output.script.buffer);
-		const preimage = writer.toBuffer();
-		return async ? sha256Async(preimage).then(sha256Async) : sha256d(preimage);
+		const preimg = writer.toBuffer();
+		return sha256d(preimg);
 	}
 
 	let hashPrevouts = new Uint8Array(32);
@@ -93,25 +94,21 @@ export default async function preimage(
 		hashOutputs = await getOutputHash(vin);
 	}
 
-	function getPreimage(hashPrevouts: Uint8Array, hashSequence: Uint8Array, hashOutputs: Uint8Array) {
+	function getPreimage(hashprevouts: Uint8Array, hashsequence: Uint8Array, hashoutputs: Uint8Array) {
 		const writer = new BufferWriter();
 		writeU32LE(writer, typeof tx.version === 'undefined' ? 1 : tx.version);
-		writer.write(hashPrevouts);
-		writer.write(hashSequence);
+		writer.write(hashprevouts);
+		writer.write(hashsequence);
 		writer.write(decodeHex(input.txid).reverse());
 		writeU32LE(writer, input.vout);
 		writeVarint(writer, parentScript.length);
 		writer.write(parentScript);
 		writeU64LE(writer, parentSatoshis);
 		writeU32LE(writer, typeof input.sequence === 'undefined' ? 0xffffffff : input.sequence);
-		writer.write(hashOutputs);
+		writer.write(hashoutputs);
 		writeU32LE(writer, tx.locktime || 0);
 		writeU32LE(writer, sighashFlags >>> 0);
 		return writer.toBuffer();
-	}
-
-	if (async) {
-		return Promise.all([hashPrevouts, hashSequence, hashOutputs]).then((args) => getPreimage(...args));
 	}
 	return getPreimage(hashPrevouts, hashSequence, hashOutputs);
 }

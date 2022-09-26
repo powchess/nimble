@@ -1,11 +1,13 @@
-import VARIANT from 'constants/variant';
-import { getMemoryBuffer, getSha256, checkAvailableMemory } from 'run-wasm/wasm-hashes';
+// eslint-disable-next-line import/no-relative-packages
+import { getMemoryBuffer, getSha256, checkAvailableMemory } from '../wasm/wasm-hashes';
+import VARIANT from '../constants/variant';
 import sha256 from './sha256';
 
+// eslint-disable-next-line import/no-mutable-exports
 let sha256d: (data: Uint8Array) => Uint8Array;
 
 if (typeof VARIANT === 'undefined' || VARIANT === 'browser') {
-	sha256d = function (data) {
+	sha256d = (data) => {
 		const wasmMemory = getMemoryBuffer();
 		const wasmSha256 = getSha256() as CallableFunction;
 

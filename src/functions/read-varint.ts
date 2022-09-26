@@ -1,4 +1,5 @@
-import BufferReader from 'classes/buffer-reader';
+/* eslint-disable no-param-reassign */
+import BufferReader from '../classes/buffer-reader';
 
 export default function readVarint(reader: BufferReader): number {
 	const { buffer, pos: i } = reader;

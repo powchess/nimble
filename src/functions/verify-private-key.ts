@@ -1,4 +1,5 @@
-import { BN_SIZE, getMemoryBuffer, getBnExports, writeBN, getNPos } from 'run-wasm/wasm-secp256k1';
+// eslint-disable-next-line import/no-relative-packages
+import { BN_SIZE, getBnExports, getMemoryBuffer, getNPos, writeBN } from '../wasm/wasm-secp256k1';
 
 function verifyPrivateKey(privateKey: Uint8Array): Uint8Array {
 	if (privateKey.length !== 32) throw new Error('bad length');

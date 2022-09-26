@@ -1,3 +1,4 @@
+/* eslint-disable no-bitwise */
 import BASE58_CHARS from '../constants/base58-chars';
 
 export default function encodeBase58(payload: Uint8Array): string {

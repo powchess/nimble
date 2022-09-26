@@ -1,9 +1,7 @@
-import { Point } from 'types/general';
-/* eslint-disable import/no-cycle */
+import { Point } from '../types/general';
 import Address from './address';
 import PrivateKey from './private-key';
 import nimble from '../index';
-/* eslint-enable import/no-cycle */
 import encodeHex from '../functions/encode-hex';
 import decodeHex from '../functions/decode-hex';
 import decodePublicKey from '../functions/decode-public-key';

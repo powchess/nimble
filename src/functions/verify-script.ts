@@ -1,24 +1,14 @@
-import Transaction from 'classes/transaction';
+import Transaction from '../classes/transaction';
 import evalScript from './eval-script';
 
-function verifyScript(
+export default function verifyScript(
 	unlockScript: Uint8Array,
 	lockScript: Uint8Array,
 	tx: Transaction,
 	vin: number,
-	parentSatoshis: number,
-	async = false
+	parentSatoshis: number
 ) {
-	const vm = evalScript(unlockScript, lockScript, tx, vin, parentSatoshis, { async, trace: false });
-
-	if (async) {
-		// @ts-ignore
-		return vm.then((vm) => (vm.error ? Promise.reject(vm.error) : vm.success));
-	}
-	// @ts-ignore
+	const vm = evalScript(unlockScript, lockScript, tx, vin, parentSatoshis, { trace: false });
 	if (vm.error) throw vm.error;
-	// @ts-ignore
 	return vm.success;
 }
-
-export default verifyScript;

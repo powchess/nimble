@@ -1,4 +1,6 @@
-import BufferWriter from 'classes/buffer-writer';
+/* eslint-disable no-param-reassign */
+/* eslint-disable no-bitwise */
+import BufferWriter from '../classes/buffer-writer';
 
 export default function writeU32LE(writer: BufferWriter, n: number): BufferWriter {
 	if (n > 0xffffffff) throw new Error('number too large');

@@ -1,4 +1,5 @@
-import BufferWriter from 'classes/buffer-writer';
+/* eslint-disable no-param-reassign */
+import BufferWriter from '../classes/buffer-writer';
 
 export default function writeVarint(writer: BufferWriter, n: number): BufferWriter {
 	if (n > Number.MAX_SAFE_INTEGER) throw new Error('varint too large');

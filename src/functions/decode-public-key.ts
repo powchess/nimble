@@ -1,24 +1,7 @@
-import { Point } from 'types/general';
-import { BN_SIZE, getMemoryBuffer, getSecp256k1Exports, writeBN, readBN } from 'run-wasm/wasm-secp256k1';
+// eslint-disable-next-line import/no-relative-packages
+import { BN_SIZE, getMemoryBuffer, getSecp256k1Exports, writeBN, readBN } from '../wasm/wasm-secp256k1';
+import { Point } from '../types/general';
 import verifyPoint from './verify-point';
-
-export default function decodePublicKey(buffer: Uint8Array): Point {
-	const prefix = buffer[0];
-
-	if (prefix === 0x04) {
-		const publicKey = decodeUncompressedPublicKey(buffer);
-		verifyPoint(publicKey);
-		return publicKey;
-	}
-
-	if (prefix === 0x02 || prefix === 0x03) {
-		const publicKey = decodeCompressedPublicKey(buffer);
-		verifyPoint(publicKey);
-		return publicKey;
-	}
-
-	throw new Error(`bad prefix: ${prefix}`);
-}
 
 function decodeCompressedPublicKey(buffer: Uint8Array): Point {
 	if (buffer.length !== 33) throw new Error('bad length');
@@ -53,4 +36,22 @@ function decodeUncompressedPublicKey(buffer: Uint8Array): Point {
 	const y = buffer.slice(ystart, 65);
 
 	return { x, y };
+}
+
+export default function decodePublicKey(buffer: Uint8Array): Point {
+	const prefix = buffer[0];
+
+	if (prefix === 0x04) {
+		const publicKey = decodeUncompressedPublicKey(buffer);
+		verifyPoint(publicKey);
+		return publicKey;
+	}
+
+	if (prefix === 0x02 || prefix === 0x03) {
+		const publicKey = decodeCompressedPublicKey(buffer);
+		verifyPoint(publicKey);
+		return publicKey;
+	}
+
+	throw new Error(`bad prefix: ${prefix}`);
 }

@@ -1,7 +1,5 @@
-/* eslint-disable import/no-cycle */
 import PublicKey from './public-key';
 import Script from './script';
-/* eslint-enable import/no-cycle */
 import encodeAddress from '../functions/encode-address';
 import decodeAddress from '../functions/decode-address';
 import calculatePublicKeyHash from '../functions/calculate-public-key-hash';

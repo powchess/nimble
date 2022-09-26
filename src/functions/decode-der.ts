@@ -1,4 +1,4 @@
-import { Signature } from 'types/general';
+import { Signature } from '../types/general';
 import BufferReader from '../classes/buffer-reader';
 import readDER from './read-der';
 

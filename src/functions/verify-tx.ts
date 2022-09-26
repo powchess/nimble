@@ -1,5 +1,5 @@
-import Transaction from 'classes/transaction';
-import { ParentTx } from 'types/general';
+import { ParentTx } from '../types/general';
+import Transaction from '../classes/transaction';
 import encodeTx from './encode-tx';
 import verifyScript from './verify-script';
 

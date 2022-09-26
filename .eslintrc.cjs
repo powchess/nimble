@@ -1,7 +1,12 @@
 module.exports = {
 	root: true,
 	parser: '@typescript-eslint/parser',
-	extends: ['airbnb', 'airbnb-typescript/base', 'plugin:@typescript-eslint/recommended', 'prettier'],
+	extends: [
+		'airbnb-base',
+		'airbnb-typescript/base',
+		'plugin:@typescript-eslint/recommended',
+		'plugin:prettier/recommended',
+	],
 	plugins: ['@typescript-eslint', 'prettier'],
 	parserOptions: {
 		ecmaVersion: 2020,
@@ -17,7 +22,7 @@ module.exports = {
 	rules: {
 		'no-continue': 'off',
 		'no-plusplus': 'off',
-		'@typescript-eslint/ban-ts-comment': 'off',
+		'import/no-cycle': 'off',
 		'import/no-extraneous-dependencies': 'off',
 	},
 };

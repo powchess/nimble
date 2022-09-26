@@ -1,8 +1,6 @@
-/* eslint-disable import/no-cycle */
 import Address from './address';
 import PublicKey from './public-key';
 import nimble from '../index';
-/* eslint-enable import/no-cycle */
 import generatePrivateKey from '../functions/generate-private-key';
 import encodeWIF from '../functions/encode-wif';
 import decodeWIF from '../functions/decode-wif';
@@ -11,7 +9,6 @@ import verifyPrivateKey from '../functions/verify-private-key';
 
 // These WeakMap caches allow the objects themselves to maintain their immutability
 const PRIVATE_KEY_TO_WIF_CACHE = new WeakMap(); // Cached to reduce sha256
-
 export default class PrivateKey {
 	number: Uint8Array;
 

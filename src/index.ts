@@ -1,5 +1,3 @@
-/* eslint-disable import/no-cycle */
-
 import Address from './classes/address';
 import PublicKey from './classes/public-key';
 import PrivateKey from './classes/private-key';

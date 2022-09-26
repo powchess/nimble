@@ -1,4 +1,4 @@
-import { Signature } from 'types/general';
+import { Signature } from '../types/general';
 import BufferWriter from '../classes/buffer-writer';
 import writeDER from './write-der';
 

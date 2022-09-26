@@ -1,6 +1,23 @@
-import VARIANT from 'constants/variant';
+/* eslint-disable no-bitwise */
+import VARIANT from '../constants/variant';
 
+// eslint-disable-next-line import/no-mutable-exports
 let decodeBase64: (base64: string) => Uint8Array;
+
+function getLens(b64: string) {
+	const len = b64.length;
+
+	if (len % 4 > 0) throw new Error('length must be a multiple of 4');
+
+	// Trim off extra bytes after placeholder bytes are found
+	// See: https://github.com/beatgammit/base64-js/issues/42
+	let validLen = b64.indexOf('=');
+	if (validLen === -1) validLen = len;
+
+	const placeHoldersLen = validLen === len ? 0 : 4 - (validLen % 4);
+
+	return [validLen, placeHoldersLen];
+}
 
 // Prefer our implementation of decodeBase64 over Buffer when we don't know the VARIANT
 // to avoid accidentally importing the Buffer shim in the browser.
@@ -20,22 +37,7 @@ if (typeof VARIANT === 'undefined' || VARIANT === 'browser') {
 	REV_LOOKUP['-'.charCodeAt(0)] = 62;
 	REV_LOOKUP['_'.charCodeAt(0)] = 63;
 
-	function getLens(b64: string) {
-		const len = b64.length;
-
-		if (len % 4 > 0) throw new Error('length must be a multiple of 4');
-
-		// Trim off extra bytes after placeholder bytes are found
-		// See: https://github.com/beatgammit/base64-js/issues/42
-		let validLen = b64.indexOf('=');
-		if (validLen === -1) validLen = len;
-
-		const placeHoldersLen = validLen === len ? 0 : 4 - (validLen % 4);
-
-		return [validLen, placeHoldersLen];
-	}
-
-	decodeBase64 = function (b64: string): Uint8Array {
+	decodeBase64 = (b64: string) => {
 		let tmp;
 		const lens = getLens(b64);
 		const validLen = lens[0];

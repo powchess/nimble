@@ -1,25 +1,65 @@
-import Transaction from 'classes/transaction';
-import OP_CODES from 'constants/opcodes';
-import { Chunk } from 'types/general';
+/* eslint-disable no-bitwise */
+import OP_CODES from '../constants/opcodes';
+import { Chunk } from '../types/general';
+import Transaction from '../classes/transaction';
 import encodeHex from './encode-hex';
 import decodeHex from './decode-hex';
 import decodeScriptChunks from './decode-script-chunks';
 import verifyTxSignature from './verify-tx-signature';
-import verifyTxSignatureAsync from './verify-tx-signature-async';
-import ripemd160Async from './ripemd160-async';
-import sha1Async from './sha1-async';
-import sha256Async from './sha256-async';
 import decodePublicKey from './decode-public-key';
 import ripemd160 from './ripemd160';
 import sha1 from './sha1';
 import sha256 from './sha256';
 
-const defaults = {
-	async: false,
-	trace: true,
-};
-
 type NumNeg = { num: bigint; neg: boolean };
+
+const LSHIFT_MASK = [0xff, 0x7f, 0x3f, 0x1f, 0x0f, 0x07, 0x03, 0x01];
+
+function lshift(arr: Uint8Array, n: number) {
+	const bitshift = n % 8;
+	const byteshift = Math.floor(n / 8);
+	const mask = LSHIFT_MASK[bitshift];
+	const overflowmask = mask ^ 0xff;
+	const result: number[] = new Array(arr.length).fill(0);
+	for (let i = arr.length - 1; i >= 0; i--) {
+		const k = i - byteshift;
+		if (k >= 0) {
+			let val = arr[i] & mask;
+			val <<= bitshift;
+			result[k] |= val;
+		}
+		if (k - 1 >= 0) {
+			let carryval = arr[i] & overflowmask;
+			carryval >>= (8 - bitshift) % 8;
+			result[k - 1] |= carryval;
+		}
+	}
+	return new Uint8Array(result);
+}
+
+const RSHIFT_MASK = [0xff, 0xfe, 0xfc, 0xf8, 0xf0, 0xe0, 0xc0, 0x80];
+
+function rshift(arr: Uint8Array, n: number) {
+	const bitshift = n % 8;
+	const byteshift = Math.floor(n / 8);
+	const mask = RSHIFT_MASK[bitshift];
+	const overflowmask = mask ^ 0xff;
+	const result = new Array(arr.length).fill(0);
+	for (let i = 0; i < arr.length; i++) {
+		const k = i + byteshift;
+		if (k < arr.length) {
+			let val = arr[i] & mask;
+			val >>= bitshift;
+			result[k] |= val;
+		}
+		if (k + 1 < arr.length) {
+			let carryval = arr[i] & overflowmask;
+			carryval <<= (8 - bitshift) % 8;
+			result[k + 1] |= carryval;
+		}
+	}
+	return new Uint8Array(result);
+}
 
 export default function evalScript(
 	unlockScript: Uint8Array,
@@ -29,8 +69,8 @@ export default function evalScript(
 	parentSatoshis: number,
 	opts = {}
 ) {
-	const { async, trace } = {
-		...defaults,
+	const { trace } = {
+		trace: true,
 		...opts,
 	};
 
@@ -50,14 +90,15 @@ export default function evalScript(
 	}
 
 	function finish(error: Error | null = null) {
+		let err = error;
 		if (stackTrace.length) traceStack(stackTrace.length);
-		if (!error && branchExec.length) error = new Error('ENDIF missing');
+		if (!error && branchExec.length) err = new Error('ENDIF missing');
 		const success = !error && !!stack.length && stack[stack.length - 1].some((x) => x);
-		if (!error && !success) error = new Error('top of stack is false');
+		if (!error && !success) err = new Error('top of stack is false');
 
 		return {
 			success,
-			error,
+			error: err,
 			chunks,
 			stack,
 			stackTrace,
@@ -96,6 +137,7 @@ export default function evalScript(
 		const decodeNum = (arr: number[] | number | Uint8Array): NumNeg => {
 			if (typeof arr === 'number') return { num: BigInt(0), neg: false };
 			const neg = !!(arr[arr.length - 1] & 0x80);
+			// eslint-disable-next-line no-param-reassign
 			arr[arr.length - 1] &= 0x7f;
 			const num = BigInt(`0x${encodeHex(new Uint8Array(arr).reverse())}`);
 			return { num, neg };
@@ -124,6 +166,7 @@ export default function evalScript(
 
 		let i = 0;
 
+		// eslint-disable-next-line no-inner-declarations
 		function step() {
 			// Skip branch
 			if (branchExec.length > 0 && !branchExec[branchExec.length - 1]) {
@@ -391,15 +434,17 @@ export default function evalScript(
 					}
 					break;
 				case OP_CODES.OP_INVERT:
-					const v = pop();
-					stack.push(v.map((ai) => ai ^ 0xff));
+					{
+						const v = pop();
+						stack.push(v.map((ai) => ai ^ 0xff));
+					}
 					break;
 				case OP_CODES.OP_AND:
 					{
 						const a = pop();
 						const b = pop();
 						if (a.length !== b.length) throw new Error('OP_AND failed, different sizes');
-						stack.push(a.map((ai, i) => ai & b[i]));
+						stack.push(a.map((ai, j) => ai & b[j]));
 					}
 					break;
 				case OP_CODES.OP_OR:
@@ -407,7 +452,7 @@ export default function evalScript(
 						const a = pop();
 						const b = pop();
 						if (a.length !== b.length) throw new Error('OP_OR failed, different sizes');
-						stack.push(a.map((ai, i) => ai | b[i]));
+						stack.push(a.map((ai, j) => ai | b[j]));
 					}
 					break;
 				case OP_CODES.OP_XOR:
@@ -415,14 +460,14 @@ export default function evalScript(
 						const a = pop();
 						const b = pop();
 						if (a.length !== b.length) throw new Error('OP_XOR failed, different sizes');
-						stack.push(a.map((ai, i) => ai ^ b[i]));
+						stack.push(a.map((ai, j) => ai ^ b[j]));
 					}
 					break;
 				case OP_CODES.OP_EQUAL:
 					{
 						const a = pop();
 						const b = pop();
-						const equal = a.length === b.length && !a.some((ai, i) => ai !== b[i]);
+						const equal = a.length === b.length && !a.some((ai, j) => ai !== b[j]);
 						stack.push(encodeNum(equal ? 1 : 0));
 					}
 					break;
@@ -430,7 +475,7 @@ export default function evalScript(
 					{
 						const a = pop();
 						const b = pop();
-						const equal = a.length === b.length && !a.some((ai, i) => ai !== b[i]);
+						const equal = a.length === b.length && !a.some((ai, j) => ai !== b[j]);
 						if (!equal) throw new Error('OP_EQUALVERIFY failed');
 					}
 					break;
@@ -449,12 +494,16 @@ export default function evalScript(
 					}
 					break;
 				case OP_CODES.OP_1ADD:
-					const num1 = addNum(decodeNum(pop()), { num: BigInt(1), neg: false });
-					stack.push(encodeNum(num1.num, num1.neg));
+					{
+						const num1 = addNum(decodeNum(pop()), { num: BigInt(1), neg: false });
+						stack.push(encodeNum(num1.num, num1.neg));
+					}
 					break;
 				case OP_CODES.OP_1SUB:
-					const num2 = addNum(decodeNum(pop()), { num: BigInt(1), neg: true });
-					stack.push(encodeNum(num2.num, num2.neg));
+					{
+						const num2 = addNum(decodeNum(pop()), { num: BigInt(1), neg: true });
+						stack.push(encodeNum(num2.num, num2.neg));
+					}
 					break;
 				case OP_CODES.OP_NEGATE:
 					{
@@ -481,12 +530,16 @@ export default function evalScript(
 					}
 					break;
 				case OP_CODES.OP_ADD:
-					const n = addNum(decodeNum(pop()), decodeNum(pop()));
-					stack.push(encodeNum(n.num, n.neg));
+					{
+						const n = addNum(decodeNum(pop()), decodeNum(pop()));
+						stack.push(encodeNum(n.num, n.neg));
+					}
 					break;
 				case OP_CODES.OP_SUB:
-					const m = subNum(decodeNum(pop()), decodeNum(pop()));
-					stack.push(encodeNum(m.num, m.neg));
+					{
+						const m = subNum(decodeNum(pop()), decodeNum(pop()));
+						stack.push(encodeNum(m.num, m.neg));
+					}
 					break;
 				case OP_CODES.OP_MUL:
 					{
@@ -583,8 +636,10 @@ export default function evalScript(
 					}
 					break;
 				case OP_CODES.OP_BIN2NUM:
-					const num = decodeNum(pop());
-					stack.push(encodeNum(num.num, num.neg));
+					{
+						const num = decodeNum(pop());
+						stack.push(encodeNum(num.num, num.neg));
+					}
 					break;
 				case OP_CODES.OP_NUM2BIN:
 					{
@@ -595,7 +650,7 @@ export default function evalScript(
 							m.neg || m.num < BigInt(1) || m.num < BigInt(narr.length) || m.num > BigInt(2147483647);
 						if (oor) throw new Error('OP_NUM2BIN failed, out of range');
 						const arr = Array.from(decodeHex(BigInt(n.num).toString(16)));
-						for (let i = arr.length; i < Number(m.num); i++) arr.push(0x00);
+						for (let j = arr.length; j < Number(m.num); j++) arr.push(0x00);
 						const full = arr[arr.length - 1] & 0x80;
 						if (full) arr.push(0x00);
 						if (n.neg) {
@@ -605,41 +660,22 @@ export default function evalScript(
 					}
 					break;
 				case OP_CODES.OP_RIPEMD160:
-					if (async) {
-						return ripemd160Async(pop()).then((x) => stack.push(x));
-					}
 					stack.push(ripemd160(pop()));
 					return;
 
 				case OP_CODES.OP_SHA1:
-					if (async) {
-						return sha1Async(pop()).then((x) => stack.push(x));
-					}
 					stack.push(sha1(pop()));
 					return;
 
 				case OP_CODES.OP_SHA256:
-					if (async) {
-						return sha256Async(pop()).then((x) => stack.push(x));
-					}
 					stack.push(sha256(pop()));
 					return;
 
 				case OP_CODES.OP_HASH160:
-					if (async) {
-						return sha256Async(pop())
-							.then((x) => ripemd160Async(x))
-							.then((x) => stack.push(x));
-					}
 					stack.push(ripemd160(sha256(pop())));
 					return;
 
 				case OP_CODES.OP_HASH256:
-					if (async) {
-						return sha256Async(pop())
-							.then((x) => sha256Async(x))
-							.then((x) => stack.push(x));
-					}
 					stack.push(sha256(sha256(pop())));
 					return;
 
@@ -659,17 +695,6 @@ export default function evalScript(
 								stack.push(encodeNum(verified ? 1 : 0));
 							} else if (!verified) throw new Error('OP_CHECKSIGVERIFY failed');
 						};
-
-						if (async) {
-							return verifyTxSignatureAsync(
-								tx,
-								vin,
-								signature,
-								pubkey,
-								cleanedScript,
-								parentSatoshis
-							).then(check);
-						}
 						check(verifyTxSignature(tx, vin, signature, pubkey, cleanedScript, parentSatoshis));
 					}
 					break;
@@ -680,7 +705,7 @@ export default function evalScript(
 						const total = decodeNum(pop());
 						if (total.neg) throw new Error('OP_CHECKMULTISIG failed, out of range');
 						const keys = [];
-						for (let i = 0; i < Number(total.num); i++) {
+						for (let j = 0; j < Number(total.num); j++) {
 							const pubkey = decodePublicKey(pop());
 							keys.push(pubkey);
 						}
@@ -690,7 +715,7 @@ export default function evalScript(
 						if (required.neg || required.num > total.num)
 							throw new Error('OP_CHECKMULTISIG failed, out of range');
 						const sigs = [];
-						for (let i = 0; i < Number(required.num); i++) {
+						for (let j = 0; j < Number(required.num); j++) {
 							sigs.push(pop());
 						}
 
@@ -703,35 +728,12 @@ export default function evalScript(
 						let success = true;
 						const cleanedScript = lockScript.slice(checkIndex);
 
-						const check = (success: boolean) => {
+						const check = (succ: boolean) => {
 							if (chunk.opcode === OP_CODES.OP_CHECKMULTISIG) {
-								stack.push(encodeNum(success ? 1 : 0));
-							} else if (!success) throw new Error('OP_CHECKMULTISIGVERIFY failed');
+								stack.push(encodeNum(succ ? 1 : 0));
+							} else if (!succ) throw new Error('OP_CHECKMULTISIGVERIFY failed');
 						};
 
-						if (async) {
-							return (async () => {
-								while (sig < sigs.length) {
-									if (key === keys.length) {
-										success = false;
-										break;
-									}
-									const verified = await verifyTxSignatureAsync(
-										tx,
-										vin,
-										sigs[sig],
-										keys[key],
-										cleanedScript,
-										parentSatoshis
-									);
-									if (verified) {
-										sig++;
-									}
-									key++;
-								}
-								return success;
-							})().then(check);
-						}
 						while (sig < sigs.length) {
 							if (key === keys.length) {
 								success = false;
@@ -778,71 +780,10 @@ export default function evalScript(
 			}
 		}
 
-		if (async) {
-			return (async () => {
-				try {
-					while (i < chunks.length && !done) await step();
-					return finish();
-				} catch (e) {
-					const err = e instanceof Error ? e : null;
-					const vm = finish(err);
-					return Promise.resolve(vm);
-				}
-			})();
-		}
 		while (i < chunks.length && !done) step();
 		return finish();
 	} catch (e) {
 		const err = e instanceof Error ? e : null;
-		const vm = finish(err);
-		return async ? Promise.resolve(vm) : vm;
+		return finish(err);
 	}
-}
-
-const LSHIFT_MASK = [0xff, 0x7f, 0x3f, 0x1f, 0x0f, 0x07, 0x03, 0x01];
-
-function lshift(arr: Uint8Array, n: number) {
-	const bitshift = n % 8;
-	const byteshift = Math.floor(n / 8);
-	const mask = LSHIFT_MASK[bitshift];
-	const overflowmask = mask ^ 0xff;
-	const result: number[] = new Array(arr.length).fill(0);
-	for (let i = arr.length - 1; i >= 0; i--) {
-		const k = i - byteshift;
-		if (k >= 0) {
-			let val = arr[i] & mask;
-			val <<= bitshift;
-			result[k] |= val;
-		}
-		if (k - 1 >= 0) {
-			let carryval = arr[i] & overflowmask;
-			carryval >>= (8 - bitshift) % 8;
-			result[k - 1] |= carryval;
-		}
-	}
-	return new Uint8Array(result);
-}
-
-const RSHIFT_MASK = [0xff, 0xfe, 0xfc, 0xf8, 0xf0, 0xe0, 0xc0, 0x80];
-
-function rshift(arr: Uint8Array, n: number) {
-	const bitshift = n % 8;
-	const byteshift = Math.floor(n / 8);
-	const mask = RSHIFT_MASK[bitshift];
-	const overflowmask = mask ^ 0xff;
-	const result = new Array(arr.length).fill(0);
-	for (let i = 0; i < arr.length; i++) {
-		const k = i + byteshift;
-		if (k < arr.length) {
-			let val = arr[i] & mask;
-			val >>= bitshift;
-			result[k] |= val;
-		}
-		if (k + 1 < arr.length) {
-			let carryval = arr[i] & overflowmask;
-			carryval <<= (8 - bitshift) % 8;
-			result[k + 1] |= carryval;
-		}
-	}
-	return new Uint8Array(result);
 }

@@ -1,5 +1,6 @@
-import { Point, Signature } from 'types/general';
-import { BN_SIZE, PT_SIZE, getMemoryBuffer, getEcdsaExports, writeBN } from 'run-wasm/wasm-secp256k1';
+// eslint-disable-next-line import/no-relative-packages
+import { BN_SIZE, PT_SIZE, getMemoryBuffer, getEcdsaExports, writeBN } from '../wasm/wasm-secp256k1';
+import { Point, Signature } from '../types/general';
 
 export default function ecdsaVerify(signature: Signature, hash32: Uint8Array, publicKey: Point): boolean {
 	const memory = getMemoryBuffer();
@@ -8,7 +9,7 @@ export default function ecdsaVerify(signature: Signature, hash32: Uint8Array, pu
 	const hash32Pos = sPos - BN_SIZE;
 	const publicKeyPos = hash32Pos - PT_SIZE;
 
-	const ecdsaVerify = getEcdsaExports().ecdsa_verify as CallableFunction;
+	const verify = getEcdsaExports().ecdsa_verify as CallableFunction;
 
 	writeBN(memory, rPos, signature.r);
 	writeBN(memory, sPos, signature.s);
@@ -16,5 +17,5 @@ export default function ecdsaVerify(signature: Signature, hash32: Uint8Array, pu
 	writeBN(memory, publicKeyPos, publicKey.x);
 	writeBN(memory, publicKeyPos + BN_SIZE, publicKey.y);
 
-	return ecdsaVerify(rPos, sPos, hash32Pos, publicKeyPos) === 0;
+	return verify(rPos, sPos, hash32Pos, publicKeyPos) === 0;
 }

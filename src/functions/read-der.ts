@@ -1,5 +1,6 @@
-import BufferReader from 'classes/buffer-reader';
-import { Signature } from 'types/general';
+/* eslint-disable no-bitwise */
+import BufferReader from '../classes/buffer-reader';
+import { Signature } from '../types/general';
 
 export default function readDER(reader: BufferReader): Signature {
 	const [prefix, length, rprefix, rlength] = reader.read(4);

@@ -1,5 +1,5 @@
-import Transaction from 'classes/transaction';
-import { Point } from 'types/general';
+import { Point } from '../types/general';
+import Transaction from '../classes/transaction';
 import decodeDER from './decode-der';
 import sighash from './sighash';
 import ecdsaVerify from './ecdsa-verify';

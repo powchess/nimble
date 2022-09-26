@@ -1,4 +1,4 @@
-import BufferReader from 'classes/buffer-reader';
+import BufferReader from '../classes/buffer-reader';
 import readU32LE from './read-u32-le';
 
 export default function readBlockHeader(reader: BufferReader): {

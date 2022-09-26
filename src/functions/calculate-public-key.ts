@@ -1,5 +1,6 @@
-import { Point } from 'types/general';
-import { BN_SIZE, PT_SIZE, getMemoryBuffer, getSecp256k1Exports, writeBN, readBN } from 'run-wasm/wasm-secp256k1';
+// eslint-disable-next-line import/no-relative-packages
+import { BN_SIZE, PT_SIZE, getMemoryBuffer, getSecp256k1Exports, writeBN, readBN } from '../wasm/wasm-secp256k1';
+import { Point } from '../types/general';
 
 export default function calculatePublicKey(privateKey: Uint8Array): Point {
 	const memory = getMemoryBuffer();

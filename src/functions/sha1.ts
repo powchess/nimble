@@ -1,13 +1,15 @@
-import VARIANT from 'constants/variant';
 import { createHash } from 'crypto';
-import { checkAvailableMemory, getSha1, getMemoryBuffer } from 'run-wasm/wasm-hashes';
+// eslint-disable-next-line import/no-relative-packages
+import { checkAvailableMemory, getSha1, getMemoryBuffer } from '../wasm/wasm-hashes';
+import VARIANT from '../constants/variant';
 
+// eslint-disable-next-line import/no-mutable-exports
 let sha1: (data: Uint8Array) => Uint8Array;
 
 // If we don't know the VARIANT, prefer our implementation to avoid the crypto shim in the browser
 
 if (typeof VARIANT === 'undefined' || VARIANT === 'browser') {
-	sha1 = function (data) {
+	sha1 = (data) => {
 		const wasmMemory = getMemoryBuffer();
 		const wasmSha1 = getSha1() as CallableFunction;
 

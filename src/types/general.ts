@@ -1,4 +1,4 @@
-import Script from 'classes/script';
+import Script from '../classes/script';
 
 export type Point = {
 	x: Uint8Array;

@@ -1,5 +1,4 @@
 import areBuffersEqual from './are-buffers-equal';
-import asyncify from './asyncify';
 import calculatePublicKey from './calculate-public-key';
 import calculatePublicKeyHash from './calculate-public-key-hash';
 import calculateTxid from './calculate-txid';
@@ -16,10 +15,8 @@ import decodePublicKey from './decode-public-key';
 import decodeScriptChunks from './decode-script-chunks';
 import decodeTx from './decode-tx';
 import decodeWIF from './decode-wif';
-import ecdsaSignAsync from './ecdsa-sign-async';
 import ecdsaSignWithK from './ecdsa-sign-with-k';
 import ecdsaSign from './ecdsa-sign';
-import ecdsaVerifyAsync from './ecdsa-verify-async';
 import ecdsaVerify from './ecdsa-verify';
 import encodeAddress from './encode-address';
 import encodeASM from './encode-asm';
@@ -33,14 +30,12 @@ import encodeTx from './encode-tx';
 import encodeWIF from './encode-wif';
 import extractP2PKHLockScriptPubkeyhash from './extract-p2pkh-lock-script-pubkeyhash';
 import generateTxSignature from './generate-tx-signature';
-import generateTxSignatureAsync from './generate-tx-signature-async';
 import evalScript from './eval-script';
 import generatePrivateKey from './generate-private-key';
 import generateRandomData from './generate-random-data';
 import isBuffer from './is-buffer';
 import isHex from './is-hex';
 import isP2PKHLockScript from './is-p2pkh-lock-script';
-import preimageAsync from './preimage-async';
 import preimage from './preimage';
 import readBlockHeader from './read-block-header';
 import readDER from './read-der';
@@ -48,21 +43,15 @@ import readTx from './read-tx';
 import readU32LE from './read-u32-le';
 import readU64LE from './read-u64-le';
 import ripemd160 from './ripemd160';
-import ripemd160Async from './ripemd160-async';
 import sha256 from './sha256';
 import readVarint from './read-varint';
-import sha256Async from './sha256-async';
 import sha256d from './sha256d';
-import sha1Async from './sha1-async';
 import sha1 from './sha1';
 import sha256ripemd160 from './sha256ripemd160';
-import sighashAsync from './sighash-async';
 import sighash from './sighash';
 import verifyPoint from './verify-point';
 import verifyTxSignature from './verify-tx-signature';
-import verifyTxSignatureAsync from './verify-tx-signature-async';
 import verifyPrivateKey from './verify-private-key';
-import verifyScriptAsync from './verify-script-async';
 import verifyScript from './verify-script';
 import verifyTx from './verify-tx';
 import writeDER from './write-der';
@@ -74,7 +63,6 @@ import writePushData from './write-push-data';
 
 const functions = {
 	areBuffersEqual,
-	asyncify,
 	calculatePublicKeyHash,
 	calculatePublicKey,
 	calculateTxid,
@@ -91,10 +79,8 @@ const functions = {
 	decodeScriptChunks,
 	decodeTx,
 	decodeWIF,
-	ecdsaSignAsync,
 	ecdsaSignWithK,
 	ecdsaSign,
-	ecdsaVerifyAsync,
 	ecdsaVerify,
 	encodeAddress,
 	encodeASM,
@@ -110,12 +96,10 @@ const functions = {
 	extractP2PKHLockScriptPubkeyhash,
 	generatePrivateKey,
 	generateRandomData,
-	generateTxSignatureAsync,
 	generateTxSignature,
 	isBuffer,
 	isHex,
 	isP2PKHLockScript,
-	preimageAsync,
 	preimage,
 	readBlockHeader,
 	readDER,
@@ -123,21 +107,15 @@ const functions = {
 	readU32LE,
 	readU64LE,
 	readVarint,
-	ripemd160Async,
 	ripemd160,
-	sha1Async,
 	sha1,
-	sha256Async,
 	sha256,
 	sha256d,
 	sha256ripemd160,
-	sighashAsync,
 	sighash,
 	verifyPoint,
 	verifyPrivateKey,
-	verifyScriptAsync,
 	verifyScript,
-	verifyTxSignatureAsync,
 	verifyTxSignature,
 	verifyTx,
 	writeDER,

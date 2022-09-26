@@ -1,5 +1,5 @@
 /* eslint-disable max-classes-per-file */
-import PublicKey from 'classes/public-key';
+import PublicKey from './public-key';
 import generateTxSignature from '../functions/generate-tx-signature';
 import createP2PKHLockScript from '../functions/create-p2pkh-lock-script';
 import encodeHex from '../functions/encode-hex';
@@ -15,12 +15,10 @@ import calculateTxid from '../functions/calculate-txid';
 import BufferWriter from './buffer-writer';
 import isBuffer from '../functions/is-buffer';
 import verifyTx from '../functions/verify-tx';
-/* eslint-disable import/no-cycle */
 import PrivateKey from './private-key';
 import Address from './address';
 import Script from './script';
 import nimble from '../index';
-/* eslint-enable import/no-cycle */
 
 // These WeakMap caches allow the objects themselves to maintain their immutability
 const TRANSACTION_TO_TXID_CACHE = new WeakMap();
@@ -234,7 +232,7 @@ export default class Transaction {
 		return this;
 	}
 
-	sign(privateKey: PrivateKey | string) {
+	async sign(privateKey: PrivateKey | string) {
 		if (Object.isFrozen(this)) throw new Error('transaction finalized');
 
 		const privKey = typeof privateKey === 'string' ? PrivateKey.fromString(privateKey) : privateKey;
@@ -255,7 +253,8 @@ export default class Transaction {
 			)
 				continue;
 
-			const txsignature = generateTxSignature(
+			// eslint-disable-next-line no-await-in-loop
+			const txsignature = await generateTxSignature(
 				this,
 				vin,
 				outputScript.buffer,

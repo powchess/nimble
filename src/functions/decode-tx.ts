@@ -1,4 +1,4 @@
-import { Input, Output } from 'classes/transaction';
+import { Input, Output } from '../classes/transaction';
 import BufferReader from '../classes/buffer-reader';
 import readTx from './read-tx';
 

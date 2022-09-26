@@ -1,5 +1,6 @@
-import VARIANT from 'constants/variant';
+import VARIANT from '../constants/variant';
 
+// eslint-disable-next-line import/no-mutable-exports
 let encodeHex: (buffer: Uint8Array) => string;
 
 // Prefer our implementation of encodeHex over Buffer when we don't know the VARIANT
@@ -27,7 +28,7 @@ if (typeof VARIANT === 'undefined' || VARIANT === 'browser') {
     'f0', 'f1', 'f2', 'f3', 'f4', 'f5', 'f6', 'f7', 'f8', 'f9', 'fa', 'fb', 'fc', 'fd', 'fe', 'ff'
   ]
 
-	encodeHex = function (buffer: Uint8Array): string {
+	encodeHex = (buffer: Uint8Array) => {
 		const len = buffer.length;
 		const out = new Array(len);
 		for (let i = 0; i < len; ++i) {
@@ -37,7 +38,7 @@ if (typeof VARIANT === 'undefined' || VARIANT === 'browser') {
 	};
 } else {
 	// Buffer toString('hex') in Node is faster than any JavaScript we could write
-	encodeHex = function (buffer: Uint8Array | Buffer): string {
+	encodeHex = (buffer: Uint8Array | Buffer) => {
 		return buffer instanceof Buffer ? buffer.toString('hex') : Buffer.from(buffer).toString('hex');
 	};
 }

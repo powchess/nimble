@@ -1,4 +1,4 @@
-import Transaction from 'classes/transaction';
+import Transaction from '../classes/transaction';
 import BufferWriter from '../classes/buffer-writer';
 import writeTx from './write-tx';
 

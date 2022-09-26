@@ -1,4 +1,5 @@
-import { Signature } from 'types/general';
+/* eslint-disable no-bitwise */
+import { Signature } from '../types/general';
 import BufferWriter from '../classes/buffer-writer';
 
 export default function writeDER(writer: BufferWriter, signature: Signature): void {

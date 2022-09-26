@@ -1,5 +1,5 @@
 import BufferWriter from 'classes/buffer-writer';
-import Transaction from 'classes/transaction';
+import Transaction from '../classes/transaction';
 import decodeHex from './decode-hex';
 import writeU32LE from './write-u32-le';
 import writeU64LE from './write-u64-le';
