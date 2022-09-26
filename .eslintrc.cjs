@@ -8,6 +8,7 @@ module.exports = {
 		'plugin:prettier/recommended',
 	],
 	plugins: ['@typescript-eslint', 'prettier'],
+	ignorePatterns: ['*.cjs', '*.js', 'node_modules', 'build', 'static', '*.config.ts'],
 	parserOptions: {
 		ecmaVersion: 2020,
 		sourceType: 'module',
