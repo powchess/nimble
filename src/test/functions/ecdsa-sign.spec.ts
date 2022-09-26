@@ -5,13 +5,14 @@ import nimble from '../..';
 const { generatePrivateKey, calculatePublicKey, ecdsaSign, sha256 } = nimble.functions;
 
 describe('ecdsaSign', () => {
-	test('valid', () => {
+	test('valid', async () => {
 		for (let i = 0; i < 10; i++) {
 			const data = 'abc';
 			const privateKey = generatePrivateKey();
 			const publicKey = calculatePublicKey(privateKey);
 			const hash = sha256(Buffer.from(data, 'utf8'));
-			const signature = ecdsaSign(hash, privateKey, publicKey);
+			// eslint-disable-next-line no-await-in-loop
+			const signature = await ecdsaSign(hash, privateKey, publicKey);
 
 			const hashbuf = bsv.deps.Buffer.from(hash).reverse();
 			const endian = 'little';

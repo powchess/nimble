@@ -16,14 +16,9 @@ describe('PrivateKey', () => {
 		});
 
 		test('throws if bad', () => {
-			const number = nimble.functions.generatePrivateKey();
-			expect(() => new PrivateKey(null, true, true)).toThrow('bad number');
-			expect(() => new PrivateKey(0, true, true)).toThrow('bad number');
-			expect(() => new PrivateKey(number, 1, true)).toThrow('bad testnet flag');
-			expect(() => new PrivateKey(number, false, undefined)).toThrow('bad compressed flag');
-			expect(() => new PrivateKey([], true, true)).toThrow('bad length');
-			expect(() => new PrivateKey(new Array(33), true, true)).toThrow('bad length');
-			expect(() => new PrivateKey(new Array(32).fill(255), true, true)).toThrow('outside range');
+			expect(() => new PrivateKey(new Uint8Array([]), true, true)).toThrow('bad length');
+			expect(() => new PrivateKey(new Uint8Array(33), true, true)).toThrow('bad length');
+			expect(() => new PrivateKey(new Uint8Array(32).fill(255), true, true)).toThrow('outside range');
 		});
 	});
 
@@ -36,12 +31,8 @@ describe('PrivateKey', () => {
 			expect([...privateKey.number]).toEqual([...bsvPrivateKey.toBuffer()]);
 		});
 
-		test('throws if not a string', () => {
-			expect(() => PrivateKey.fromString()).toThrow('not a string');
-		});
-
 		test('throws if bad WIF', () => {
-			const badPrivateKey = encodeBase58Check(0, []);
+			const badPrivateKey = encodeBase58Check(0, new Uint8Array([]));
 			expect(() => PrivateKey.fromString(badPrivateKey)).toThrow('bad length');
 		});
 
@@ -85,12 +76,6 @@ describe('PrivateKey', () => {
 		test('from string', () => {
 			const privateKey = PrivateKey.fromRandom();
 			expect(PrivateKey.from(privateKey.toString()).toString()).toBe(privateKey.toString());
-		});
-
-		test('throws if unsupported', () => {
-			expect(() => PrivateKey.from()).toThrow();
-			expect(() => PrivateKey.from(null)).toThrow();
-			expect(() => PrivateKey.from('abc')).toThrow();
 		});
 	});
 

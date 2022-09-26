@@ -16,11 +16,6 @@ describe('decodeHex', () => {
 		expect(Array.from(decodeHex('102'))).toEqual([0x01, 0x02]);
 	});
 
-	test('throws if not a string', () => {
-		expect(() => decodeHex()).toThrow('not a string');
-		expect(() => decodeHex(null)).toThrow('not a string');
-	});
-
 	test('throws if not a hex char', () => {
 		expect(() => decodeHex('z')).toThrow('bad hex char');
 		expect(() => decodeHex('x!')).toThrow('bad hex char');

@@ -15,9 +15,6 @@ describe('createP2PKHLockScript', () => {
 	});
 
 	test('throws if bad address', () => {
-		expect(() => createP2PKHLockScript()).toThrow('not a buffer');
-		expect(() => createP2PKHLockScript(null)).toThrow('not a buffer');
 		expect(() => createP2PKHLockScript(new bsv.PrivateKey().toAddress())).toThrow('not a buffer');
-		expect(() => createP2PKHLockScript('')).toThrow('not a buffer');
 	});
 });

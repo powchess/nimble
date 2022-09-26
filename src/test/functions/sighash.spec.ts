@@ -1,3 +1,4 @@
+/* eslint-disable no-bitwise */
 import bsv from 'bsv';
 import { describe, test, expect } from 'vitest';
 import nimble from '../..';

@@ -27,12 +27,12 @@ describe('decodeWIF', () => {
 	});
 
 	test('throws if too short', () => {
-		const badLengthWIF = encodeBase58Check(0x80, []);
+		const badLengthWIF = encodeBase58Check(0x80, new Uint8Array([]));
 		expect(() => decodeWIF(badLengthWIF)).toThrow('bad length');
 	});
 
 	test('throws if outside range', () => {
-		const outsideRangeWIP = encodeBase58Check(0x80, new Array(32).fill(255));
+		const outsideRangeWIP = encodeBase58Check(0x80, new Uint8Array(32).fill(255));
 		expect(() => decodeWIF(outsideRangeWIP)).toThrow('outside range');
 	});
 });

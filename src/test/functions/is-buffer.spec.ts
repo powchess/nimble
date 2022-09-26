@@ -11,7 +11,6 @@ describe('isBuffer', () => {
 	});
 
 	test('returns false for non-buffer', () => {
-		expect(isBuffer()).toBe(false);
 		expect(isBuffer({})).toBe(false);
 		expect(isBuffer(Uint16Array.from([]))).toBe(false);
 	});

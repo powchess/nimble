@@ -12,6 +12,7 @@ describe('ecdsaSign', () => {
 		const hash = sha256(Buffer.from(data, 'utf8'));
 		const k = decodeHex('1111111111111111111111111111111111111111111111111111111111111111');
 		const signature = ecdsaSignWithK(hash, k, privateKey, publicKey);
+		if (signature === null) throw new Error('signature is null');
 
 		const hashbuf = bsv.deps.Buffer.from(hash).reverse();
 		const endian = 'little';
@@ -28,7 +29,7 @@ describe('ecdsaSign', () => {
 		expect(Buffer.from(signature.r).toString('hex')).toBe(
 			new bsv.crypto.BN(bsv.deps.Buffer.from(sig.r.toArray())).toBuffer().toString('hex')
 		);
-		expect(Buffer.from(signature.s).toString('hex')).toBe(
+		expect(Buffer.from(signature?.s).toString('hex')).toBe(
 			new bsv.crypto.BN(bsv.deps.Buffer.from(sig.s.toArray())).toBuffer().toString('hex')
 		);
 

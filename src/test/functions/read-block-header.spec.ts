@@ -29,7 +29,7 @@ describe('readBlockHeader', () => {
 		expect(txCount).toBe(1);
 		const tx = readTx(reader);
 		expect(tx.version).toBe(1);
-		const inputScriptAscii = Buffer.from(tx.inputs[0].script).toString();
+		const inputScriptAscii = Buffer.from(tx.inputs[0].script.buffer).toString();
 		expect(inputScriptAscii.includes('The Times 03/Jan/2009 Chancellor on brink of second bailout for banks')).toBe(
 			true
 		);

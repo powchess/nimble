@@ -1,35 +1,21 @@
 import bsv from 'bsv';
 import { describe, test, expect } from 'vitest';
 import nimble from '../..';
+import Transaction, { Output } from '../../classes/transaction';
 
 const { PrivateKey } = nimble;
-const {
-	generateTxSignature,
-	generateTxSignatureAsync,
-	createP2PKHLockScript,
-	encodeHex,
-	sha256d,
-	encodeTx,
-	createP2PKHUnlockScript,
-} = nimble.functions;
+const { generateTxSignature, createP2PKHLockScript, encodeHex, sha256d, encodeTx, createP2PKHUnlockScript } =
+	nimble.functions;
 
 describe('generateTxSignature', () => {
 	test('generates signature that bsv library validates', async () => {
 		for (let i = 0; i < 10; i++) {
 			const privateKey = PrivateKey.fromRandom();
-			const publicKey = privateKey.toPublicKey();
-
 			const parentSatoshis = 123;
 			const parentScript = createP2PKHLockScript(privateKey.toAddress().pubkeyhash);
 
-			const parentTx = {
-				outputs: [
-					{
-						satoshis: parentSatoshis,
-						script: parentScript,
-					},
-				],
-			};
+			const parentTx = new Transaction();
+			parentTx.outputs = [new Output(parentScript, parentSatoshis)];
 
 			const parentTxid = encodeHex(sha256d(encodeTx(parentTx)).reverse());
 

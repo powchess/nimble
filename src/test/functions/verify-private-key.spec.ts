@@ -9,11 +9,11 @@ describe('verifyPrivateKey', () => {
 	});
 
 	test('throws if bad length', () => {
-		expect(() => verifyPrivateKey([])).toThrow('bad length');
-		expect(() => verifyPrivateKey(new Array(33))).toThrow('bad length');
+		expect(() => verifyPrivateKey(new Uint8Array([]))).toThrow('bad length');
+		expect(() => verifyPrivateKey(new Uint8Array(33))).toThrow('bad length');
 	});
 
 	test('throws if out of range', () => {
-		expect(() => verifyPrivateKey(new Array(32).fill(255))).toThrow('outside range');
+		expect(() => verifyPrivateKey(new Uint8Array(32).fill(255))).toThrow('outside range');
 	});
 });

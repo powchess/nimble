@@ -1,10 +1,10 @@
 import bsv from 'bsv';
 import { describe, test, expect } from 'vitest';
 import nimble from '../..';
+import Transaction, { Output } from '../../classes/transaction';
 
 const { PrivateKey } = nimble;
-const { verifyTxSignature, verifyTxSignatureAsync, encodeHex, sha256d, encodeTx, createP2PKHLockScript, decodeHex } =
-	nimble.functions;
+const { verifyTxSignature, encodeHex, sha256d, encodeTx, createP2PKHLockScript, decodeHex } = nimble.functions;
 
 describe('verifyTxSignature', () => {
 	test('validates bsv library signature', async () => {
@@ -15,14 +15,8 @@ describe('verifyTxSignature', () => {
 			const parentSatoshis = 123;
 			const parentScript = createP2PKHLockScript(privateKey.toAddress().pubkeyhash);
 
-			const parentTx = {
-				outputs: [
-					{
-						satoshis: parentSatoshis,
-						script: parentScript,
-					},
-				],
-			};
+			const parentTx = new Transaction();
+			parentTx.outputs = [new Output(parentScript, parentSatoshis)];
 
 			const parentTxid = encodeHex(sha256d(encodeTx(parentTx)).reverse());
 
@@ -50,16 +44,6 @@ describe('verifyTxSignature', () => {
 
 			const verified1 = verifyTxSignature(tx, vin, txsignature, publicKey.point, parentScript, parentSatoshis);
 			expect(verified1).toBe(true);
-
-			const verified2 = await verifyTxSignatureAsync(
-				tx,
-				vin,
-				txsignature,
-				publicKey.point,
-				parentScript,
-				parentSatoshis
-			);
-			expect(verified2).toBe(true);
 		}
 	});
 
@@ -70,14 +54,8 @@ describe('verifyTxSignature', () => {
 		const parentSatoshis = 123;
 		const parentScript = createP2PKHLockScript(privateKey.toAddress().pubkeyhash);
 
-		const parentTx = {
-			outputs: [
-				{
-					satoshis: parentSatoshis,
-					script: parentScript,
-				},
-			],
-		};
+		const parentTx = new Transaction();
+		parentTx.outputs = [new Output(parentScript, parentSatoshis)];
 
 		const parentTxid = encodeHex(sha256d(encodeTx(parentTx)).reverse());
 
@@ -97,16 +75,6 @@ describe('verifyTxSignature', () => {
 
 		const verified1 = verifyTxSignature(tx, vin, badTxSignature, publicKey.point, parentScript, parentSatoshis);
 		expect(verified1).toBe(false);
-
-		const verified2 = await verifyTxSignatureAsync(
-			tx,
-			vin,
-			badTxSignature,
-			publicKey.point,
-			parentScript,
-			parentSatoshis
-		);
-		expect(verified2).toBe(false);
 	});
 
 	test('throws if parameters are bad', () => {
@@ -116,14 +84,8 @@ describe('verifyTxSignature', () => {
 		const parentSatoshis = 123;
 		const parentScript = createP2PKHLockScript(privateKey.toAddress().pubkeyhash);
 
-		const parentTx = {
-			outputs: [
-				{
-					satoshis: parentSatoshis,
-					script: parentScript,
-				},
-			],
-		};
+		const parentTx = new Transaction();
+		parentTx.outputs = [new Output(parentScript, parentSatoshis)];
 
 		const parentTxid = encodeHex(sha256d(encodeTx(parentTx)).reverse());
 
@@ -143,8 +105,5 @@ describe('verifyTxSignature', () => {
 
 		expect(() => verifyTxSignature(tx, vin, signature, 'pubkey', parentScript, parentSatoshis)).toThrow();
 		expect(() => verifyTxSignature(tx, vin, 'signature', publicKey.point, parentScript, parentSatoshis)).toThrow();
-
-		expect(verifyTxSignatureAsync(tx, vin, signature, 'pubkey', parentScript, parentSatoshis)).rejects;
-		expect(verifyTxSignatureAsync(tx, vin, 'signature', publicKey.point, parentScript, parentSatoshis)).rejects;
 	});
 });

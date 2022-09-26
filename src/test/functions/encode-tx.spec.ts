@@ -1,8 +1,8 @@
 import bsv from 'bsv';
 import { describe, test, expect } from 'vitest';
-import decodeTx from 'functions/decode-tx';
-import encodeTx from 'functions/encode-tx';
-import Transaction from '../classes/transaction';
+import Transaction from '../../classes/transaction';
+import decodeTx from '../../functions/decode-tx';
+import encodeTx from '../../functions/encode-tx';
 
 describe('encodeTx', () => {
 	test('valid', () => {
@@ -42,9 +42,9 @@ describe('encodeTx', () => {
 		const longScript = [];
 		for (let i = 0; i < 256; i++) longScript.push(0x00);
 
-		testValid({ version: 0, inputs: [], outputs: [], locktime: 0 }, [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-		testValid({ version: 1, inputs: [], outputs: [], locktime: 0 }, [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-		testValid({ version: 0, inputs: [], outputs: [], locktime: 1 }, [0, 0, 0, 0, 0, 0, 1, 0, 0, 0]);
+		testValid({ version: 0, locktime: 0 }, new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]));
+		testValid({ version: 1, locktime: 0 }, new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0, 0, 0]));
+		testValid({ version: 0, locktime: 1 }, new Uint8Array([0, 0, 0, 0, 0, 0, 1, 0, 0, 0]));
 		testValid(
 			{ version: 1, inputs: [{ txid: a, vout: 0, script: [], sequence: 0xffffffff }], outputs: [], locktime: 0 },
 			[1, 0, 0, 0, 1].concat(abuffer).concat([0, 0, 0, 0, 0, 0xff, 0xff, 0xff, 0xff, 0, 0, 0, 0, 0])

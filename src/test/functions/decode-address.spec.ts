@@ -16,11 +16,6 @@ describe('decodeAddress', () => {
 		});
 	});
 
-	test('throws if not a string', () => {
-		expect(() => decodeAddress()).toThrow('not a string');
-		expect(() => decodeAddress([])).toThrow('not a string');
-	});
-
 	test('throws if unsupported version', () => {
 		expect(() => decodeAddress('3P14159f73E4gFr7JterCCQh9QjiTjiZrG')).toThrow('unsupported version');
 	});
@@ -34,7 +29,7 @@ describe('decodeAddress', () => {
 	});
 
 	test('throws if too short', () => {
-		const badLengthAddress = encodeBase58Check(0x00, []);
+		const badLengthAddress = encodeBase58Check(0x00, new Uint8Array([]));
 		expect(() => decodeAddress(badLengthAddress)).toThrow('bad payload');
 	});
 });

@@ -2,7 +2,7 @@ import bsv from 'bsv';
 import { expect, describe, test } from 'vitest';
 import nimble from '../..';
 
-const { Address, PrivateKey, Script } = nimble;
+const { Address, PrivateKey } = nimble;
 const { encodeBase58Check, createP2PKHLockScript } = nimble.functions;
 
 describe('Address', () => {
@@ -17,9 +17,8 @@ describe('Address', () => {
 		});
 
 		test('throws if bad', () => {
-			expect(() => new Address('abc', true)).toThrow('bad pubkeyhash');
-			expect(() => new Address([], false)).toThrow('bad pubkeyhash');
-			expect(() => new Address(new Array(20), 0)).toThrow('bad testnet flag');
+			expect(() => new Address(Buffer.from('abc'), true)).toThrow('bad pubkeyhash');
+			expect(() => new Address(new Uint8Array([]), false)).toThrow('bad pubkeyhash');
 		});
 	});
 
@@ -46,20 +45,12 @@ describe('Address', () => {
 			expect(() => Address.fromString('1JMckZqEF3194i3TCe2eJrvLyL74RAJ36k')).toThrow('bad checksum');
 		});
 
-		test('throws if not a string', () => {
-			expect(() => Address.fromString()).toThrow('not a string');
-			expect(() => Address.fromString(null)).toThrow('not a string');
-			expect(() => Address.fromString(Address.fromString(new bsv.PrivateKey().toAddress()))).toThrow(
-				'not a string'
-			);
-		});
-
 		test('throws if bad chars', () => {
 			expect(() => Address.fromString('!JMckZqEF3194i3TCe2eJrvLyL74RAJ36k')).toThrow('bad base58 chars');
 		});
 
 		test('throws if bad length', () => {
-			const badLengthAddress = encodeBase58Check(0, []);
+			const badLengthAddress = encodeBase58Check(0, new Uint8Array([]));
 			expect(() => Address.fromString(badLengthAddress)).toThrow('bad payload');
 		});
 
@@ -115,12 +106,6 @@ describe('Address', () => {
 		test('from PublicKey instance', () => {
 			const publicKey = PrivateKey.fromRandom().toPublicKey();
 			expect(Address.from(publicKey).toString()).toBe(publicKey.toAddress().toString());
-		});
-
-		test('throws if unsupported', () => {
-			expect(() => Address.from()).toThrow();
-			expect(() => Address.from(null)).toThrow();
-			expect(() => Address.from('abc')).toThrow();
 		});
 	});
 

@@ -6,7 +6,7 @@ const { encodeDER, decodeDER, generateRandomData } = nimble.functions;
 
 describe('encodeDER', () => {
 	test('encodes full length', () => {
-		const signature = { r: new Array(32).fill(1), s: new Array(32).fill(2) };
+		const signature = { r: new Uint8Array(32).fill(1), s: new Uint8Array(32).fill(2) };
 		const der = encodeDER(signature);
 		expect(der[0]).toBe(0x30);
 		expect(der[1]).toBe(68);
@@ -22,7 +22,7 @@ describe('encodeDER', () => {
 	});
 
 	test('encodes smaller length', () => {
-		const signature = { r: new Array(20).fill(1), s: new Array(10).fill(2) };
+		const signature = { r: new Uint8Array(20).fill(1), s: new Uint8Array(10).fill(2) };
 		const der = encodeDER(signature);
 		expect(der[0]).toBe(0x30);
 		expect(der[1]).toBe(34);
@@ -38,7 +38,7 @@ describe('encodeDER', () => {
 	});
 
 	test('negative', () => {
-		const signature = { r: [0x80].concat(new Array(31).fill(0)), s: new Array(32).fill(255) };
+		const signature = { r: new Uint8Array([0x80].concat(new Array(31).fill(0))), s: new Uint8Array(32).fill(255) };
 		const der = encodeDER(signature);
 		expect(der[0]).toBe(0x30);
 		expect(der[1]).toBe(70);

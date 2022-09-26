@@ -1,5 +1,4 @@
 import { describe, test, expect } from 'vitest';
-import Script from 'classes/script';
 import nimble from '../..';
 
 const { evalScript, decodeHex, encodePushData, writePushData, decodeTx, generateTxSignature } = nimble.functions;
@@ -113,7 +112,7 @@ const {
 
 describe('evalScript', () => {
 	test('valid script returns vm including stack trace', () => {
-		const vm = evalScript([OP_2, OP_3], [OP_ADD, OP_5, OP_EQUAL]);
+		const vm = evalScript(new Uint8Array([OP_2, OP_3]), new Uint8Array([OP_ADD, OP_5, OP_EQUAL]));
 
 		expect(vm.success).toBe(true);
 		expect(vm.error).toBe(null);

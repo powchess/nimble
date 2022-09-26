@@ -5,10 +5,10 @@ const { encodeHex } = nimble.functions;
 
 describe('encodeHex', () => {
 	test('empty', () => {
-		expect(encodeHex([])).toBe('');
+		expect(encodeHex(new Uint8Array([]))).toBe('');
 	});
 
 	test('buffer', () => {
-		expect(encodeHex([0x00, 0x11, 0x22])).toBe('001122');
+		expect(encodeHex(new Uint8Array([0x00, 0x11, 0x22]))).toBe('001122');
 	});
 });

@@ -15,11 +15,6 @@ describe('Transaction', () => {
 			expect(tx.outputs.length).toBe(0);
 			expect(tx.locktime).toBe(new bsv.Transaction().nLockTime);
 		});
-
-		test('throws if any arguments are passed', () => {
-			const hex = new Transaction().toString();
-			expect(() => new Transaction(hex)).toThrow();
-		});
 	});
 
 	describe('fromHex', () => {

@@ -1,7 +1,7 @@
 import bsv from 'bsv';
 import { describe, test, expect } from 'vitest';
-import { Chunk } from '../types/general';
 import nimble from '../..';
+import { Chunk } from '../../types/general';
 
 const { decodeScriptChunks } = nimble.functions;
 
@@ -43,14 +43,14 @@ describe('decodeScriptChunks', () => {
 
 	test('throws if bad', () => {
 		const err = 'bad script';
-		expect(() => decodeScriptChunks([1])).toThrow(err);
-		expect(() => decodeScriptChunks([75])).toThrow(err);
-		expect(() => decodeScriptChunks([76])).toThrow(err);
-		expect(() => decodeScriptChunks([76, 1])).toThrow(err);
-		expect(() => decodeScriptChunks([77, 0])).toThrow(err);
-		expect(() => decodeScriptChunks([77, 1, 0])).toThrow(err);
-		expect(() => decodeScriptChunks([78, 0])).toThrow(err);
-		expect(() => decodeScriptChunks([78, 0, 0, 0])).toThrow(err);
-		expect(() => decodeScriptChunks([78, 1, 0, 0, 0])).toThrow(err);
+		expect(() => decodeScriptChunks(new Uint8Array([1]))).toThrow(err);
+		expect(() => decodeScriptChunks(new Uint8Array([75]))).toThrow(err);
+		expect(() => decodeScriptChunks(new Uint8Array([76]))).toThrow(err);
+		expect(() => decodeScriptChunks(new Uint8Array([76, 1]))).toThrow(err);
+		expect(() => decodeScriptChunks(new Uint8Array([77, 0]))).toThrow(err);
+		expect(() => decodeScriptChunks(new Uint8Array([77, 1, 0]))).toThrow(err);
+		expect(() => decodeScriptChunks(new Uint8Array([78, 0]))).toThrow(err);
+		expect(() => decodeScriptChunks(new Uint8Array([78, 0, 0, 0]))).toThrow(err);
+		expect(() => decodeScriptChunks(new Uint8Array([78, 1, 0, 0, 0]))).toThrow(err);
 	});
 });
