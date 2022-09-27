@@ -61,12 +61,12 @@ function rshift(arr: Uint8Array, n: number) {
 	return new Uint8Array(result);
 }
 
-export default function evalScript(
+export default async function evalScript(
 	unlockScript: Uint8Array,
 	lockScript: Uint8Array,
-	tx: Transaction,
-	vin: number,
-	parentSatoshis: number,
+	tx: Transaction = new Transaction(),
+	vin = 0,
+	parentSatoshis = 0,
 	opts = {}
 ) {
 	const { trace } = {
@@ -167,7 +167,7 @@ export default function evalScript(
 		let i = 0;
 
 		// eslint-disable-next-line no-inner-declarations
-		function step() {
+		async function step() {
 			// Skip branch
 			if (branchExec.length > 0 && !branchExec[branchExec.length - 1]) {
 				let sub = 0; // sub branch
@@ -695,7 +695,7 @@ export default function evalScript(
 								stack.push(encodeNum(verified ? 1 : 0));
 							} else if (!verified) throw new Error('OP_CHECKSIGVERIFY failed');
 						};
-						check(verifyTxSignature(tx, vin, signature, pubkey, cleanedScript, parentSatoshis));
+						check(await verifyTxSignature(tx, vin, signature, pubkey, cleanedScript, parentSatoshis));
 					}
 					break;
 				case OP_CODES.OP_CHECKMULTISIG:
@@ -739,7 +739,8 @@ export default function evalScript(
 								success = false;
 								break;
 							}
-							const verified = verifyTxSignature(
+							// eslint-disable-next-line no-await-in-loop
+							const verified = await verifyTxSignature(
 								tx,
 								vin,
 								sigs[sig],
@@ -780,7 +781,8 @@ export default function evalScript(
 			}
 		}
 
-		while (i < chunks.length && !done) step();
+		// eslint-disable-next-line no-await-in-loop
+		while (i < chunks.length && !done) await step();
 		return finish();
 	} catch (e) {
 		const err = e instanceof Error ? e : null;

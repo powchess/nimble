@@ -2,8 +2,9 @@ import { ParentTx } from '../types/general';
 import Transaction from '../classes/transaction';
 import encodeTx from './encode-tx';
 import verifyScript from './verify-script';
+import nimble from '../index';
 
-export default function verifyTx(tx: Transaction, parents: ParentTx[], minFeePerKb: number) {
+export default async function verifyTx(tx: Transaction, parents: ParentTx[] = [], minFeePerKb = nimble.feePerKb) {
 	const version = typeof tx.version !== 'undefined' ? tx.version : 1;
 	const locktime = typeof tx.locktime !== 'undefined' ? tx.locktime : 0;
 
@@ -24,7 +25,11 @@ export default function verifyTx(tx: Transaction, parents: ParentTx[], minFeePer
 		});
 	});
 
+	const promises: Promise<boolean>[] = [];
+
 	tx.inputs.forEach((input, vin) => {
-		verifyScript(input.script.buffer, parents[vin].script.buffer, tx, vin, parents[vin].satoshis);
+		promises.push(verifyScript(input.script.buffer, parents[vin].script.buffer, tx, vin, parents[vin].satoshis));
 	});
+
+	await Promise.all(promises);
 }

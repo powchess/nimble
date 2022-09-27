@@ -2,6 +2,7 @@ import bsv from 'bsv';
 import { expect, describe, test } from 'vitest';
 import nimble from '../..';
 import { Input, Output } from '../../classes/transaction';
+import verifyScript from '../../functions/verify-script';
 
 const { Transaction, PrivateKey, Script } = nimble;
 const { createP2PKHLockScript } = nimble.functions;
@@ -416,7 +417,8 @@ describe('Transaction', () => {
 			const tx1 = new Transaction().to(privateKey.toAddress(), 1000);
 			const tx2 = await new Transaction().from(tx1.outputs[0]).to(privateKey.toAddress(), 2000).sign(privateKey);
 			expect(tx2.inputs[0].script.length > 0).toBe(true);
-			nimble.functions.verifyScript(
+
+			await verifyScript(
 				tx2.inputs[0].script.buffer,
 				tx1.outputs[0].script.buffer,
 				tx2,

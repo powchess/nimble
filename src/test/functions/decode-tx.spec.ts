@@ -14,9 +14,9 @@ describe('decodeTx', () => {
 			new Input(
 				'1234567812345678123456781234567812345678123456781234567812345678',
 				1,
-				new Output(new Uint8Array([4, 5, 6]), 7),
 				new Script(new Uint8Array([1, 2, 3])),
-				88
+				88,
+				new Output(new Uint8Array([4, 5, 6]), 7)
 			),
 		];
 		tx.outputs = [new Output(new Uint8Array([4, 5, 6]), 7)];

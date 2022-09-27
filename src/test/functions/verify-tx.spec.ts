@@ -1,5 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import nimble from '../..';
+import Script from '../../classes/script';
+import Transaction, { Input, Output } from '../../classes/transaction';
 
 const { verifyTx } = nimble.functions;
 
@@ -41,36 +43,54 @@ describe('verifyTx', () => {
 	});
 
 	test('throws if bad version', () => {
-		expect(() => verifyTx({ version: 2 })).toThrow('bad version');
-		expect(() => verifyTx({ version: 0 })).toThrow('bad version');
+		const tx = new Transaction();
+		tx.version = 2;
+		expect(() => verifyTx(tx)).toThrow('bad version');
+		tx.version = 0;
+		expect(() => verifyTx(tx)).toThrow('bad version');
 	});
 
 	test('throws if bad locktime', () => {
-		expect(() => verifyTx({ locktime: -1 })).toThrow('bad locktime');
-		expect(() => verifyTx({ locktime: 0xffffffff + 1 })).toThrow('bad locktime');
-		expect(() => verifyTx({ locktime: 1.5 })).toThrow('bad locktime');
+		const tx = new Transaction();
+		tx.locktime = -1;
+		expect(() => verifyTx(tx)).toThrow('bad locktime');
+		tx.locktime = 0xffffffff + 1;
+		expect(() => verifyTx(tx)).toThrow('bad locktime');
+		tx.locktime = 1.5;
+		expect(() => verifyTx(tx)).toThrow('bad locktime');
 	});
 
 	test('throws if no inputs', () => {
-		expect(() => verifyTx({ inputs: [] })).toThrow('no inputs');
+		expect(() => verifyTx(new Transaction())).toThrow('no inputs');
 	});
 
 	test('throws if no outputs', () => {
-		const input = { txid: new nimble.Transaction().hash, vout: 0 };
-		expect(() => verifyTx({ inputs: [input], outputs: [] })).toThrow('no outputs');
+		const input = new Input(new nimble.Transaction().hash, 0);
+		const tx = new Transaction();
+		tx.inputs = [input];
+		expect(() => verifyTx(tx)).toThrow('no outputs');
 	});
 
 	test('throws if insufficient fees', () => {
-		const input = { txid: new nimble.Transaction().hash, vout: 0 };
-		const output = { script: [], satoshis: 1000 };
-		const parents = [{ satoshis: 1000 }];
-		expect(() => verifyTx({ inputs: [input], outputs: [output] }, parents, 50)).toThrow('insufficient priority');
+		const input = new Input(new nimble.Transaction().hash, 0);
+		const output = new Output(new Script(), 1000);
+		const tx = new Transaction();
+		tx.inputs = [input];
+		tx.outputs = [output];
+		const parents = [{ satoshis: 1000, script: new Script() }];
+		expect(() => verifyTx(tx, parents, 50)).toThrow('insufficient priority');
 	});
 
 	test('throws if duplicate input', () => {
-		const input = { txid: new nimble.Transaction().hash, vout: 0 };
-		const output = { script: [], satoshis: 1000 };
-		const parents = [{ satoshis: 1000 }, { satoshis: 1000 }];
-		expect(() => verifyTx({ inputs: [input, input], outputs: [output] }, parents, 50)).toThrow('duplicate input');
+		const input = new Input(new nimble.Transaction().hash, 0);
+		const output = new Output(new Script(), 1000);
+		const tx = new Transaction();
+		tx.inputs = [input];
+		tx.outputs = [output];
+		const parents = [
+			{ satoshis: 1000, script: new Script() },
+			{ satoshis: 1000, script: new Script() },
+		];
+		expect(() => verifyTx(tx, parents, 50)).toThrow('duplicate input');
 	});
 });

@@ -1,5 +1,7 @@
 import { describe, test, expect } from 'vitest';
 import nimble from '../..';
+import Script from '../../classes/script';
+import OP_CODES from '../../constants/opcodes';
 
 const { evalScript, decodeHex, encodePushData, writePushData, decodeTx, generateTxSignature } = nimble.functions;
 const { BufferWriter } = nimble.classes;
@@ -108,23 +110,30 @@ const {
 	OP_NOP8,
 	OP_NOP9,
 	OP_NOP10,
-} = nimble.constants.opcodes;
+} = OP_CODES;
 
 describe('evalScript', () => {
-	test('valid script returns vm including stack trace', () => {
-		const vm = evalScript(new Uint8Array([OP_2, OP_3]), new Uint8Array([OP_ADD, OP_5, OP_EQUAL]));
+	test('valid script returns vm including stack trace', async () => {
+		const vm = await evalScript(new Uint8Array([OP_2, OP_3]), new Uint8Array([OP_ADD, OP_5, OP_EQUAL]));
 
 		expect(vm.success).toBe(true);
 		expect(vm.error).toBe(null);
 		expect(vm.stack).toEqual([[1]]);
 		expect(vm.stackTrace.length).toBe(5);
-		expect(vm.stackTrace.every((l: Uint8Array) => l.length === 3)).toBe(true);
+		expect(vm.stackTrace.every((l) => l.length === 3)).toBe(true);
 	});
 
-	test('valid script returns vm omitting stack trace', () => {
-		const vm = evalScript([OP_2, OP_3], [OP_ADD, OP_5, OP_EQUAL], undefined, undefined, undefined, {
-			trace: false,
-		});
+	test('valid script returns vm omitting stack trace', async () => {
+		const vm = await evalScript(
+			new Uint8Array([OP_2, OP_3]),
+			new Uint8Array([OP_ADD, OP_5, OP_EQUAL]),
+			undefined,
+			undefined,
+			undefined,
+			{
+				trace: false,
+			}
+		);
 
 		expect(vm.success).toBe(true);
 		expect(vm.error).toBe(null);
@@ -132,275 +141,284 @@ describe('evalScript', () => {
 		expect(vm.stackTrace.length).toBe(0);
 	});
 
-	test('invalid script returns vm with error message', () => {
-		const vm1 = evalScript([OP_2, OP_3, OP_CHECKSIGVERIFY], [OP_ADD, OP_5, OP_EQUAL]);
+	test('invalid script returns vm with error message', async () => {
+		const vm1 = await evalScript(
+			new Uint8Array([OP_2, OP_3, OP_CHECKSIGVERIFY]),
+			new Uint8Array([OP_ADD, OP_5, OP_EQUAL])
+		);
 
 		expect(vm1.success).toBe(false);
-		expect(vm1.error.message).toBe('non-push data in unlock script');
+		expect(vm1.error?.message).toBe('non-push data in unlock script');
 
-		const vm2 = evalScript([OP_2, OP_3], [OP_ADD, OP_6, OP_EQUALVERIFY]);
+		const vm2 = await evalScript(new Uint8Array([OP_2, OP_3]), new Uint8Array([OP_ADD, OP_6, OP_EQUALVERIFY]));
 		expect(vm2.success).toBe(false);
-		expect(vm2.error.message).toBe(/OP_EQUALVERIFY failed/);
+		expect(vm2.error?.message).toBe(/OP_EQUALVERIFY failed/);
 	});
 
 	test('valid script returns vm asynchronosly', async () => {
-		await evalScript([OP_2, OP_3], [OP_ADD, OP_5, OP_EQUAL], undefined, undefined, undefined, { async: true }).then(
-			(vm: any) => expect(vm.success).toBe(true)
+		const vm = await evalScript(
+			new Uint8Array([OP_2, OP_3]),
+			new Uint8Array([OP_ADD, OP_5, OP_EQUAL]),
+			undefined,
+			undefined,
+			undefined
 		);
+		expect(vm.success).toBe(true);
 	});
 
 	test('invalid script returns vm asynchronosly (does not reject)', async () => {
-		await evalScript([OP_2, OP_3, OP_CHECKSIGVERIFY], [OP_ADD, OP_5, OP_EQUAL], undefined, undefined, undefined, {
-			async: true,
-		}).then((vm: any) => expect(vm.success).toBe(false));
+		const vm = await evalScript(
+			new Uint8Array([OP_2, OP_3, OP_CHECKSIGVERIFY]),
+			new Uint8Array([OP_ADD, OP_5, OP_EQUAL]),
+			undefined,
+			undefined,
+			undefined
+		);
+
+		expect(vm.success).toBe(false);
 	});
 
 	test('valid script passes', async () => {
 		async function pass(script: number[]) {
-			const vm = evalScript([], script, undefined, undefined, undefined, { async: false });
+			const vm = await evalScript(new Uint8Array([]), new Uint8Array(script));
 			expect(vm.success).toBe(true);
 			expect(vm.error).toBe(null);
-
-			const vm2 = await evalScript([], script, undefined, undefined, undefined, { async: true });
-			expect(vm2.success).toBe(true);
-			expect(vm2.error).toBe(null);
 		}
 
-		await pass([OP_TRUE]);
-		await pass([OP_1]);
-		await pass([OP_2]);
-		await pass([OP_3]);
-		await pass([OP_4]);
-		await pass([OP_5]);
-		await pass([OP_6]);
-		await pass([OP_7]);
-		await pass([OP_8]);
-		await pass([OP_9]);
-		await pass([OP_10]);
-		await pass([OP_11]);
-		await pass([OP_12]);
-		await pass([OP_13]);
-		await pass([OP_14]);
-		await pass([OP_15]);
-		await pass([OP_16]);
-		await pass([1, 1]);
-		await pass([OP_PUSHDATA1, 2, 0, 1]);
-		await pass([OP_PUSHDATA2, 2, 0, 0, 1]);
-		await pass([OP_PUSHDATA4, 2, 0, 0, 0, 0, 1]);
-		await pass([OP_NOP, OP_NOP, OP_NOP, OP_1]);
-		await pass([OP_1, OP_1, OP_IF, OP_ELSE, OP_ENDIF]);
-		await pass([OP_1, OP_1, OP_1, OP_IF, OP_IF, OP_ENDIF, OP_ENDIF]);
-		await pass([OP_1, OP_IF, OP_1, OP_ELSE, OP_0, OP_ENDIF]);
-		await pass([OP_0, OP_IF, OP_0, OP_ELSE, OP_1, OP_ENDIF]);
-		await pass([OP_1, OP_IF, OP_0, OP_1, OP_ENDIF]);
-		await pass([OP_1, OP_IF, OP_0, OP_IF, OP_ELSE, OP_1, OP_ENDIF, OP_ENDIF]);
-		await pass([OP_1, OP_IF, OP_PUSHDATA1, 1, 0, OP_1, OP_ENDIF]);
-		await pass([OP_1, OP_IF, OP_ELSE, OP_ELSE, OP_1, OP_ENDIF]);
-		await pass([OP_1, OP_IF, OP_ELSE, OP_ELSE, OP_ELSE, OP_ELSE, OP_1, OP_ENDIF]);
-		await pass([OP_1, OP_IF, OP_1, OP_ELSE, OP_1, OP_IF, OP_ENDIF, OP_ENDIF]);
-		await pass([OP_1, OP_VERIFY, OP_1]);
-		await pass([OP_1, OP_RETURN]);
-		await pass([OP_FALSE, OP_TRUE, OP_RETURN]);
-		await pass([OP_1, OP_0, OP_TOALTSTACK]);
-		await pass([OP_1, OP_TOALTSTACK, OP_FROMALTSTACK]);
-		await pass([OP_1, OP_IFDUP, OP_DROP, OP_DROP, OP_1]);
-		await pass([OP_DEPTH, OP_1]);
-		await pass([OP_0, OP_DEPTH]);
-		await pass([OP_1, OP_0, OP_DROP]);
-		await pass([OP_0, OP_DUP, OP_DROP, OP_DROP, OP_1]);
-		await pass([OP_1, OP_0, OP_0, OP_NIP, OP_DROP]);
-		await pass([OP_1, OP_0, OP_OVER]);
-		await pass([OP_1, OP_0, OP_PICK]);
-		await pass([OP_1, OP_0, OP_0, OP_0, OP_0, OP_4, OP_PICK]);
-		await pass([2, 0xff, 0xff, OP_1, OP_1, OP_PICK, 2, 0xff, 0xff, OP_EQUAL]);
-		await pass([OP_1, OP_0, OP_ROLL]);
-		await pass([OP_1, OP_0, OP_0, OP_ROLL, OP_DROP]);
-		await pass([OP_1, OP_0, OP_0, OP_0, OP_0, OP_4, OP_ROLL]);
-		await pass([OP_1, OP_0, OP_0, OP_ROT]);
-		await pass([OP_0, OP_1, OP_0, OP_ROT, OP_ROT]);
-		await pass([OP_0, OP_0, OP_1, OP_ROT, OP_ROT, OP_ROT]);
-		await pass([OP_1, OP_0, OP_SWAP]);
-		await pass([OP_0, OP_1, OP_TUCK, OP_DROP, OP_DROP]);
-		await pass([OP_1, OP_0, OP_0, OP_2DROP]);
-		await pass([OP_0, OP_1, OP_2DUP]);
-		await pass([OP_0, OP_1, OP_2DUP, OP_DROP, OP_DROP]);
-		await pass([OP_0, OP_0, OP_1, OP_3DUP]);
-		await pass([OP_0, OP_0, OP_1, OP_3DUP, OP_DROP, OP_DROP, OP_DROP]);
-		await pass([OP_0, OP_1, OP_0, OP_0, OP_2OVER]);
-		await pass([OP_0, OP_0, OP_0, OP_1, OP_2OVER, OP_DROP, OP_DROP]);
-		await pass([OP_0, OP_1, OP_0, OP_0, OP_0, OP_0, OP_2ROT]);
-		await pass([OP_0, OP_0, OP_0, OP_1, OP_0, OP_0, OP_2ROT, OP_2ROT]);
-		await pass([OP_0, OP_0, OP_0, OP_0, OP_0, OP_1, OP_2ROT, OP_2ROT, OP_2ROT]);
-		await pass([OP_1, OP_0, OP_0, OP_0, OP_0, OP_0, OP_2ROT, OP_DROP]);
-		await pass([OP_0, OP_1, OP_0, OP_0, OP_2SWAP]);
-		await pass([OP_1, OP_0, OP_0, OP_0, OP_2SWAP, OP_DROP]);
-		await pass([OP_0, OP_0, OP_CAT, OP_0, OP_EQUAL]);
-		await pass([OP_0, OP_1, OP_CAT, OP_1, OP_EQUAL]);
-		await pass([OP_1, OP_2, OP_CAT, 2, 1, 2, OP_EQUAL]);
-		await pass([OP_1, OP_0, OP_0, OP_2, OP_0, OP_CAT, OP_PICK]);
-		await pass([OP_0, OP_0, OP_CAT, OP_IF, OP_ELSE, OP_1, OP_ENDIF]);
-		await pass([OP_0, OP_0, OP_SPLIT, OP_0, OP_EQUALVERIFY, OP_0, OP_EQUAL]);
-		await pass([2, OP_0, OP_1, OP_1, OP_SPLIT]);
-		await pass([2, OP_0, OP_1, OP_2, OP_SPLIT, OP_DROP]);
-		await pass([2, OP_0, OP_1, OP_0, OP_SPLIT]);
-		await pass([OP_0, OP_0, OP_SPLIT, OP_1]);
-		await pass([OP_1, OP_1, OP_SPLIT, OP_DROP]);
-		await pass([3, 0x00, 0x11, 0x22, OP_0, OP_SPLIT, 3, 0x00, 0x11, 0x22, OP_EQUALVERIFY, OP_0, OP_EQUAL]);
-		await pass([3, 0x00, 0x11, 0x22, OP_1, OP_SPLIT, 2, 0x11, 0x22, OP_EQUALVERIFY, 1, 0x00, OP_EQUAL]);
-		await pass([3, 0x00, 0x11, 0x22, OP_2, OP_SPLIT, 1, 0x22, OP_EQUALVERIFY, 2, 0x00, 0x11, OP_EQUAL]);
-		await pass([3, 0x00, 0x11, 0x22, OP_3, OP_SPLIT, OP_0, OP_EQUALVERIFY, 3, 0x00, 0x11, 0x22, OP_EQUAL]);
-		await pass([2, OP_0, OP_1, OP_SIZE, OP_2, OP_EQUALVERIFY]);
-		await pass([OP_1, OP_SIZE]);
-		await pass([OP_1, OP_SIZE, OP_DROP]);
-		await pass([OP_1, OP_1, OP_AND]);
-		await pass([OP_1, OP_1, OP_OR]);
-		await pass([OP_1, OP_1, OP_XOR, OP_IF, OP_ELSE, OP_1, OP_ENDIF]);
-		await pass([3, 0xff, 0x01, 0x00, OP_INVERT, 3, 0x00, 0xfe, 0xff, OP_EQUAL]);
-		await pass([OP_0, OP_0, OP_LSHIFT, OP_0, OP_EQUAL]);
-		await pass([OP_4, OP_2, OP_LSHIFT, OP_16, OP_EQUAL]);
-		await pass([2, 0x12, 0x34, OP_4, OP_LSHIFT, 2, 0x23, 0x40, OP_EQUAL]);
-		await pass([OP_0, OP_0, OP_RSHIFT, OP_0, OP_EQUAL]);
-		await pass([OP_4, OP_2, OP_RSHIFT, OP_1, OP_EQUAL]);
-		await pass([2, 0x12, 0x34, OP_4, OP_RSHIFT, 2, 0x01, 0x23, OP_EQUAL]);
-		await pass([OP_0, OP_0, OP_EQUAL]);
-		await pass([OP_1, OP_1, OP_EQUAL]);
-		await pass([OP_1, OP_0, OP_0, OP_EQUALVERIFY]);
-		await pass([OP_0, OP_1ADD]);
-		await pass([OP_1, OP_1ADD, OP_2, OP_EQUAL]);
-		await pass([OP_2, OP_1SUB]);
-		await pass([OP_0, OP_1SUB, OP_1NEGATE, OP_EQUAL]);
-		await pass([4, 0xff, 0xff, 0xff, 0x7f, OP_1ADD, OP_SIZE, OP_5, OP_EQUAL]);
-		await pass([4, 0xff, 0xff, 0xff, 0xff, OP_1SUB, OP_SIZE, OP_5, OP_EQUAL]);
-		await pass([OP_1, OP_NEGATE, OP_1NEGATE, OP_EQUAL]);
-		await pass([OP_1NEGATE, OP_NEGATE, OP_1, OP_EQUAL]);
-		await pass([OP_1, OP_ABS, OP_1, OP_EQUAL]);
-		await pass([OP_1NEGATE, OP_ABS, OP_1, OP_EQUAL]);
-		await pass([OP_0, OP_NOT]);
-		await pass([OP_1, OP_NOT, OP_0, OP_EQUAL]);
-		await pass([OP_2, OP_NOT, OP_0, OP_EQUAL]);
-		await pass([OP_1, OP_NOT, OP_NOT]);
-		await pass([OP_1, OP_0NOTEQUAL]);
-		await pass([OP_0, OP_0NOTEQUAL, OP_0, OP_EQUAL]);
-		await pass([OP_2, OP_0NOTEQUAL]);
-		await pass([5, 0, 0, 0, 0, 0, OP_1ADD]);
-		await pass([5, 0, 0, 0, 0, 0, OP_1SUB]);
-		await pass([5, 0, 0, 0, 0, 0, OP_NEGATE, OP_1]);
-		await pass([5, 0, 0, 0, 0, 0, OP_ABS, OP_1]);
-		await pass([5, 0, 0, 0, 0, 0, OP_NOT]);
-		await pass([5, 0, 0, 0, 0, 0, OP_0NOTEQUAL, OP_1]);
-		await pass([OP_0, OP_1, OP_ADD]);
-		await pass([OP_1, OP_0, OP_ADD]);
-		await pass([OP_1, OP_2, OP_ADD, OP_3, OP_EQUAL]);
-		await pass([4, 0xff, 0xff, 0xff, 0xff, 4, 0xff, 0xff, 0xff, 0xff, OP_ADD, OP_SIZE, OP_5, OP_EQUAL]);
-		await pass([5, 0xff, 0xff, 0xff, 0xff, 0xff, 5, 0xff, 0xff, 0xff, 0xff, 0xff, OP_ADD, OP_SIZE, OP_6, OP_EQUAL]);
-		await pass([4, 0xff, 0xff, 0xff, 0x7f, 4, 0xff, 0xff, 0xff, 0xff, OP_ADD, OP_0, OP_EQUAL]);
-		await pass([OP_2, OP_1, OP_SUB]);
-		await pass([OP_1, OP_1, OP_SUB, OP_0, OP_EQUAL]);
-		await pass([4, 0xff, 0xff, 0xff, 0xff, 4, 0xff, 0xff, 0xff, 0x7f, OP_SUB, OP_SIZE, OP_5, OP_EQUAL]);
-		await pass([4, 0xff, 0xff, 0xff, 0x7f, 4, 0xff, 0xff, 0xff, 0x7f, OP_SUB, OP_0, OP_EQUAL]);
-		await pass([OP_1, OP_1, OP_MUL, OP_1, OP_EQUAL]);
-		await pass([OP_2, OP_3, OP_MUL, OP_6, OP_EQUAL]);
-		await pass([4, 0xff, 0xff, 0xff, 0x7f, 4, 0xff, 0xff, 0xff, 0x7f, OP_MUL]);
-		await pass([OP_1, OP_1NEGATE, OP_MUL, OP_1NEGATE, OP_EQUAL]);
-		await pass([OP_1, OP_1, OP_DIV, OP_1, OP_EQUAL]);
-		await pass([OP_5, OP_2, OP_DIV, OP_2, OP_EQUAL]);
-		await pass([OP_2, OP_1NEGATE, OP_DIV, 1, 130, OP_EQUAL]);
-		await pass([OP_1, OP_1, OP_MOD, OP_0, OP_EQUAL]);
-		await pass([OP_5, OP_2, OP_MOD, OP_1, OP_EQUAL]);
-		await pass([OP_5, 1, 0x82, OP_MOD, OP_1, OP_EQUAL]);
-		await pass([1, 0x83, OP_2, OP_MOD, OP_1NEGATE, OP_EQUAL]);
-		await pass([OP_1, OP_1, OP_BOOLAND]);
-		await pass([OP_0, OP_1, OP_BOOLAND, OP_0, OP_EQUAL]);
-		await pass([OP_1, OP_0, OP_BOOLOR]);
-		await pass([OP_0, OP_0, OP_BOOLOR, OP_0, OP_EQUAL]);
-		await pass([OP_1, OP_1, OP_NUMEQUAL]);
-		await pass([OP_0, OP_1, OP_NUMEQUAL, OP_NOT]);
-		await pass([OP_1, OP_1, OP_NUMEQUALVERIFY, OP_1]);
-		await pass([OP_1, OP_0, OP_NUMNOTEQUAL]);
-		await pass([OP_1, OP_1, OP_NUMNOTEQUAL, OP_NOT]);
-		await pass([OP_0, OP_1, OP_LESSTHAN]);
-		await pass([OP_1, OP_2, OP_LESSTHAN]);
-		await pass([OP_1NEGATE, OP_0, OP_LESSTHAN]);
-		await pass([OP_0, OP_0, OP_LESSTHAN, OP_NOT]);
-		await pass([OP_1, OP_0, OP_GREATERTHAN]);
-		await pass([OP_0, OP_1NEGATE, OP_GREATERTHAN]);
-		await pass([OP_2, OP_1, OP_GREATERTHAN]);
-		await pass([OP_0, OP_0, OP_GREATERTHAN, OP_NOT]);
-		await pass([OP_0, OP_1, OP_LESSTHANOREQUAL]);
-		await pass([OP_1NEGATE, OP_0, OP_LESSTHANOREQUAL]);
-		await pass([OP_0, OP_0, OP_LESSTHANOREQUAL]);
-		await pass([OP_1NEGATE, OP_1NEGATE, OP_LESSTHANOREQUAL]);
-		await pass([OP_1, OP_0, OP_GREATERTHANOREQUAL]);
-		await pass([OP_0, OP_1NEGATE, OP_GREATERTHANOREQUAL]);
-		await pass([OP_0, OP_0, OP_GREATERTHANOREQUAL]);
-		await pass([OP_1, OP_1, OP_GREATERTHANOREQUAL]);
-		await pass([OP_0, OP_1, OP_MIN, OP_0, OP_EQUAL]);
-		await pass([OP_0, OP_0, OP_MIN, OP_0, OP_EQUAL]);
-		await pass([OP_1NEGATE, OP_0, OP_MIN, OP_1NEGATE, OP_EQUAL]);
-		await pass([OP_0, OP_1, OP_MAX, OP_1, OP_EQUAL]);
-		await pass([OP_0, OP_0, OP_MAX, OP_0, OP_EQUAL]);
-		await pass([OP_1NEGATE, OP_0, OP_MAX, OP_0, OP_EQUAL]);
-		await pass([OP_0, OP_0, OP_1, OP_WITHIN]);
-		await pass([OP_0, OP_1NEGATE, OP_1, OP_WITHIN]);
-		await pass([1, 0, OP_BIN2NUM, OP_0, OP_EQUAL]);
-		await pass([3, 0, 0, 0, OP_BIN2NUM, OP_0, OP_EQUAL]);
-		await pass([7, 1, 0, 0, 0, 0, 0, 0, OP_BIN2NUM, OP_1, OP_EQUAL]);
-		await pass([7, 1, 0, 0, 0, 0, 0, 0x80, OP_BIN2NUM, OP_1NEGATE, OP_EQUAL]);
-		await pass([1, 0x80, OP_BIN2NUM, OP_0, OP_EQUAL]);
-		await pass([7, 0, 0, 0, 0, 0, 0, 0x80, OP_BIN2NUM, OP_0, OP_EQUAL]);
-		await pass([7, 1, 2, 3, 0, 0, 0, 0, OP_BIN2NUM, 3, 1, 2, 3, OP_EQUAL]);
-		await pass([OP_1, OP_7, OP_NUM2BIN, 7, 1, 0, 0, 0, 0, 0, 0, OP_EQUAL]);
-		await pass([OP_0, OP_4, OP_NUM2BIN, OP_0, OP_NUMEQUAL]);
-		await pass([OP_0, OP_4, OP_NUM2BIN, OP_0, OP_EQUAL, OP_NOT]);
-		await pass([OP_1, OP_1, OP_16, OP_NUM2BIN, OP_BIN2NUM, OP_EQUAL]);
-		await pass([OP_1NEGATE, OP_DUP, OP_16, OP_NUM2BIN, OP_BIN2NUM, OP_EQUAL]);
-		await pass([OP_1, 5, 129, 0, 0, 0, 0, OP_NUM2BIN]);
-		await pass([OP_1, OP_RIPEMD160]);
-		await pass([OP_0, OP_RIPEMD160]);
-		await pass(
-			Array.from(encodePushData(decodeHex('cea1b21f1a739fba68d1d4290437d2c5609be1d3')) as number[])
-				.concat(Array.from(encodePushData(decodeHex('0123456789abcdef'))))
-				.concat([OP_RIPEMD160, OP_EQUAL])
-		);
-		await pass([OP_1, OP_SHA1]);
-		await pass([OP_0, OP_SHA1]);
-		await pass(
-			Array.from(encodePushData(decodeHex('0ca2eadb529ac2e63abf9b4ae3df8ee121f10547')) as number[])
-				.concat(Array.from(encodePushData(decodeHex('0123456789abcdef'))))
-				.concat([OP_SHA1, OP_EQUAL])
-		);
-		await pass([OP_1, OP_SHA256]);
-		await pass([OP_0, OP_SHA256]);
-		await pass(
-			Array.from(
-				encodePushData(
-					decodeHex('55c53f5d490297900cefa825d0c8e8e9532ee8a118abe7d8570762cd38be9818')
-				) as number[]
-			)
-				.concat(Array.from(encodePushData(decodeHex('0123456789abcdef'))))
-				.concat([OP_SHA256, OP_EQUAL])
-		);
-		await pass([OP_1, OP_HASH160]);
-		await pass([OP_0, OP_HASH160]);
-		await pass(
-			Array.from(encodePushData(decodeHex('a956ed79819901b1b2c7b3ec045081f749c588ed')) as number[])
-				.concat(Array.from(encodePushData(decodeHex('0123456789abcdef'))))
-				.concat([OP_HASH160, OP_EQUAL])
-		);
-		await pass([OP_1, OP_HASH256]);
-		await pass([OP_0, OP_HASH256]);
-		await pass(
-			Array.from(
-				encodePushData(
-					decodeHex('137ad663f79da06e282ed0abbec4d70523ced5ff8e39d5c2e5641d978c5925aa')
-				) as number[]
-			)
-				.concat(Array.from(encodePushData(decodeHex('0123456789abcdef'))))
-				.concat([OP_HASH256, OP_EQUAL])
-		);
-		await pass([OP_NOP1, OP_NOP2, OP_NOP3, OP_NOP4, OP_NOP5, OP_NOP6, OP_NOP7, OP_NOP8, OP_NOP9, OP_NOP10, OP_1]);
-	});
+		const promises = [
+			pass([OP_TRUE]),
+			pass([OP_1]),
+			pass([OP_2]),
+			pass([OP_3]),
+			pass([OP_4]),
+			pass([OP_5]),
+			pass([OP_6]),
+			pass([OP_7]),
+			pass([OP_8]),
+			pass([OP_9]),
+			pass([OP_10]),
+			pass([OP_11]),
+			pass([OP_12]),
+			pass([OP_13]),
+			pass([OP_14]),
+			pass([OP_15]),
+			pass([OP_16]),
+			pass([1, 1]),
+			pass([OP_PUSHDATA1, 2, 0, 1]),
+			pass([OP_PUSHDATA2, 2, 0, 0, 1]),
+			pass([OP_PUSHDATA4, 2, 0, 0, 0, 0, 1]),
+			pass([OP_NOP, OP_NOP, OP_NOP, OP_1]),
+			pass([OP_1, OP_1, OP_IF, OP_ELSE, OP_ENDIF]),
+			pass([OP_1, OP_1, OP_1, OP_IF, OP_IF, OP_ENDIF, OP_ENDIF]),
+			pass([OP_1, OP_IF, OP_1, OP_ELSE, OP_0, OP_ENDIF]),
+			pass([OP_0, OP_IF, OP_0, OP_ELSE, OP_1, OP_ENDIF]),
+			pass([OP_1, OP_IF, OP_0, OP_1, OP_ENDIF]),
+			pass([OP_1, OP_IF, OP_0, OP_IF, OP_ELSE, OP_1, OP_ENDIF, OP_ENDIF]),
+			pass([OP_1, OP_IF, OP_PUSHDATA1, 1, 0, OP_1, OP_ENDIF]),
+			pass([OP_1, OP_IF, OP_ELSE, OP_ELSE, OP_1, OP_ENDIF]),
+			pass([OP_1, OP_IF, OP_ELSE, OP_ELSE, OP_ELSE, OP_ELSE, OP_1, OP_ENDIF]),
+			pass([OP_1, OP_IF, OP_1, OP_ELSE, OP_1, OP_IF, OP_ENDIF, OP_ENDIF]),
+			pass([OP_1, OP_VERIFY, OP_1]),
+			pass([OP_1, OP_RETURN]),
+			pass([OP_FALSE, OP_TRUE, OP_RETURN]),
+			pass([OP_1, OP_0, OP_TOALTSTACK]),
+			pass([OP_1, OP_TOALTSTACK, OP_FROMALTSTACK]),
+			pass([OP_1, OP_IFDUP, OP_DROP, OP_DROP, OP_1]),
+			pass([OP_DEPTH, OP_1]),
+			pass([OP_0, OP_DEPTH]),
+			pass([OP_1, OP_0, OP_DROP]),
+			pass([OP_0, OP_DUP, OP_DROP, OP_DROP, OP_1]),
+			pass([OP_1, OP_0, OP_0, OP_NIP, OP_DROP]),
+			pass([OP_1, OP_0, OP_OVER]),
+			pass([OP_1, OP_0, OP_PICK]),
+			pass([OP_1, OP_0, OP_0, OP_0, OP_0, OP_4, OP_PICK]),
+			pass([2, 0xff, 0xff, OP_1, OP_1, OP_PICK, 2, 0xff, 0xff, OP_EQUAL]),
+			pass([OP_1, OP_0, OP_ROLL]),
+			pass([OP_1, OP_0, OP_0, OP_ROLL, OP_DROP]),
+			pass([OP_1, OP_0, OP_0, OP_0, OP_0, OP_4, OP_ROLL]),
+			pass([OP_1, OP_0, OP_0, OP_ROT]),
+			pass([OP_0, OP_1, OP_0, OP_ROT, OP_ROT]),
+			pass([OP_0, OP_0, OP_1, OP_ROT, OP_ROT, OP_ROT]),
+			pass([OP_1, OP_0, OP_SWAP]),
+			pass([OP_0, OP_1, OP_TUCK, OP_DROP, OP_DROP]),
+			pass([OP_1, OP_0, OP_0, OP_2DROP]),
+			pass([OP_0, OP_1, OP_2DUP]),
+			pass([OP_0, OP_1, OP_2DUP, OP_DROP, OP_DROP]),
+			pass([OP_0, OP_0, OP_1, OP_3DUP]),
+			pass([OP_0, OP_0, OP_1, OP_3DUP, OP_DROP, OP_DROP, OP_DROP]),
+			pass([OP_0, OP_1, OP_0, OP_0, OP_2OVER]),
+			pass([OP_0, OP_0, OP_0, OP_1, OP_2OVER, OP_DROP, OP_DROP]),
+			pass([OP_0, OP_1, OP_0, OP_0, OP_0, OP_0, OP_2ROT]),
+			pass([OP_0, OP_0, OP_0, OP_1, OP_0, OP_0, OP_2ROT, OP_2ROT]),
+			pass([OP_0, OP_0, OP_0, OP_0, OP_0, OP_1, OP_2ROT, OP_2ROT, OP_2ROT]),
+			pass([OP_1, OP_0, OP_0, OP_0, OP_0, OP_0, OP_2ROT, OP_DROP]),
+			pass([OP_0, OP_1, OP_0, OP_0, OP_2SWAP]),
+			pass([OP_1, OP_0, OP_0, OP_0, OP_2SWAP, OP_DROP]),
+			pass([OP_0, OP_0, OP_CAT, OP_0, OP_EQUAL]),
+			pass([OP_0, OP_1, OP_CAT, OP_1, OP_EQUAL]),
+			pass([OP_1, OP_2, OP_CAT, 2, 1, 2, OP_EQUAL]),
+			pass([OP_1, OP_0, OP_0, OP_2, OP_0, OP_CAT, OP_PICK]),
+			pass([OP_0, OP_0, OP_CAT, OP_IF, OP_ELSE, OP_1, OP_ENDIF]),
+			pass([OP_0, OP_0, OP_SPLIT, OP_0, OP_EQUALVERIFY, OP_0, OP_EQUAL]),
+			pass([2, OP_0, OP_1, OP_1, OP_SPLIT]),
+			pass([2, OP_0, OP_1, OP_2, OP_SPLIT, OP_DROP]),
+			pass([2, OP_0, OP_1, OP_0, OP_SPLIT]),
+			pass([OP_0, OP_0, OP_SPLIT, OP_1]),
+			pass([OP_1, OP_1, OP_SPLIT, OP_DROP]),
+			pass([3, 0x00, 0x11, 0x22, OP_0, OP_SPLIT, 3, 0x00, 0x11, 0x22, OP_EQUALVERIFY, OP_0, OP_EQUAL]),
+			pass([3, 0x00, 0x11, 0x22, OP_1, OP_SPLIT, 2, 0x11, 0x22, OP_EQUALVERIFY, 1, 0x00, OP_EQUAL]),
+			pass([3, 0x00, 0x11, 0x22, OP_2, OP_SPLIT, 1, 0x22, OP_EQUALVERIFY, 2, 0x00, 0x11, OP_EQUAL]),
+			pass([3, 0x00, 0x11, 0x22, OP_3, OP_SPLIT, OP_0, OP_EQUALVERIFY, 3, 0x00, 0x11, 0x22, OP_EQUAL]),
+			pass([2, OP_0, OP_1, OP_SIZE, OP_2, OP_EQUALVERIFY]),
+			pass([OP_1, OP_SIZE]),
+			pass([OP_1, OP_SIZE, OP_DROP]),
+			pass([OP_1, OP_1, OP_AND]),
+			pass([OP_1, OP_1, OP_OR]),
+			pass([OP_1, OP_1, OP_XOR, OP_IF, OP_ELSE, OP_1, OP_ENDIF]),
+			pass([3, 0xff, 0x01, 0x00, OP_INVERT, 3, 0x00, 0xfe, 0xff, OP_EQUAL]),
+			pass([OP_0, OP_0, OP_LSHIFT, OP_0, OP_EQUAL]),
+			pass([OP_4, OP_2, OP_LSHIFT, OP_16, OP_EQUAL]),
+			pass([2, 0x12, 0x34, OP_4, OP_LSHIFT, 2, 0x23, 0x40, OP_EQUAL]),
+			pass([OP_0, OP_0, OP_RSHIFT, OP_0, OP_EQUAL]),
+			pass([OP_4, OP_2, OP_RSHIFT, OP_1, OP_EQUAL]),
+			pass([2, 0x12, 0x34, OP_4, OP_RSHIFT, 2, 0x01, 0x23, OP_EQUAL]),
+			pass([OP_0, OP_0, OP_EQUAL]),
+			pass([OP_1, OP_1, OP_EQUAL]),
+			pass([OP_1, OP_0, OP_0, OP_EQUALVERIFY]),
+			pass([OP_0, OP_1ADD]),
+			pass([OP_1, OP_1ADD, OP_2, OP_EQUAL]),
+			pass([OP_2, OP_1SUB]),
+			pass([OP_0, OP_1SUB, OP_1NEGATE, OP_EQUAL]),
+			pass([4, 0xff, 0xff, 0xff, 0x7f, OP_1ADD, OP_SIZE, OP_5, OP_EQUAL]),
+			pass([4, 0xff, 0xff, 0xff, 0xff, OP_1SUB, OP_SIZE, OP_5, OP_EQUAL]),
+			pass([OP_1, OP_NEGATE, OP_1NEGATE, OP_EQUAL]),
+			pass([OP_1NEGATE, OP_NEGATE, OP_1, OP_EQUAL]),
+			pass([OP_1, OP_ABS, OP_1, OP_EQUAL]),
+			pass([OP_1NEGATE, OP_ABS, OP_1, OP_EQUAL]),
+			pass([OP_0, OP_NOT]),
+			pass([OP_1, OP_NOT, OP_0, OP_EQUAL]),
+			pass([OP_2, OP_NOT, OP_0, OP_EQUAL]),
+			pass([OP_1, OP_NOT, OP_NOT]),
+			pass([OP_1, OP_0NOTEQUAL]),
+			pass([OP_0, OP_0NOTEQUAL, OP_0, OP_EQUAL]),
+			pass([OP_2, OP_0NOTEQUAL]),
+			pass([5, 0, 0, 0, 0, 0, OP_1ADD]),
+			pass([5, 0, 0, 0, 0, 0, OP_1SUB]),
+			pass([5, 0, 0, 0, 0, 0, OP_NEGATE, OP_1]),
+			pass([5, 0, 0, 0, 0, 0, OP_ABS, OP_1]),
+			pass([5, 0, 0, 0, 0, 0, OP_NOT]),
+			pass([5, 0, 0, 0, 0, 0, OP_0NOTEQUAL, OP_1]),
+			pass([OP_0, OP_1, OP_ADD]),
+			pass([OP_1, OP_0, OP_ADD]),
+			pass([OP_1, OP_2, OP_ADD, OP_3, OP_EQUAL]),
+			pass([4, 0xff, 0xff, 0xff, 0xff, 4, 0xff, 0xff, 0xff, 0xff, OP_ADD, OP_SIZE, OP_5, OP_EQUAL]),
+			pass([5, 0xff, 0xff, 0xff, 0xff, 0xff, 5, 0xff, 0xff, 0xff, 0xff, 0xff, OP_ADD, OP_SIZE, OP_6, OP_EQUAL]),
+			pass([4, 0xff, 0xff, 0xff, 0x7f, 4, 0xff, 0xff, 0xff, 0xff, OP_ADD, OP_0, OP_EQUAL]),
+			pass([OP_2, OP_1, OP_SUB]),
+			pass([OP_1, OP_1, OP_SUB, OP_0, OP_EQUAL]),
+			pass([4, 0xff, 0xff, 0xff, 0xff, 4, 0xff, 0xff, 0xff, 0x7f, OP_SUB, OP_SIZE, OP_5, OP_EQUAL]),
+			pass([4, 0xff, 0xff, 0xff, 0x7f, 4, 0xff, 0xff, 0xff, 0x7f, OP_SUB, OP_0, OP_EQUAL]),
+			pass([OP_1, OP_1, OP_MUL, OP_1, OP_EQUAL]),
+			pass([OP_2, OP_3, OP_MUL, OP_6, OP_EQUAL]),
+			pass([4, 0xff, 0xff, 0xff, 0x7f, 4, 0xff, 0xff, 0xff, 0x7f, OP_MUL]),
+			pass([OP_1, OP_1NEGATE, OP_MUL, OP_1NEGATE, OP_EQUAL]),
+			pass([OP_1, OP_1, OP_DIV, OP_1, OP_EQUAL]),
+			pass([OP_5, OP_2, OP_DIV, OP_2, OP_EQUAL]),
+			pass([OP_2, OP_1NEGATE, OP_DIV, 1, 130, OP_EQUAL]),
+			pass([OP_1, OP_1, OP_MOD, OP_0, OP_EQUAL]),
+			pass([OP_5, OP_2, OP_MOD, OP_1, OP_EQUAL]),
+			pass([OP_5, 1, 0x82, OP_MOD, OP_1, OP_EQUAL]),
+			pass([1, 0x83, OP_2, OP_MOD, OP_1NEGATE, OP_EQUAL]),
+			pass([OP_1, OP_1, OP_BOOLAND]),
+			pass([OP_0, OP_1, OP_BOOLAND, OP_0, OP_EQUAL]),
+			pass([OP_1, OP_0, OP_BOOLOR]),
+			pass([OP_0, OP_0, OP_BOOLOR, OP_0, OP_EQUAL]),
+			pass([OP_1, OP_1, OP_NUMEQUAL]),
+			pass([OP_0, OP_1, OP_NUMEQUAL, OP_NOT]),
+			pass([OP_1, OP_1, OP_NUMEQUALVERIFY, OP_1]),
+			pass([OP_1, OP_0, OP_NUMNOTEQUAL]),
+			pass([OP_1, OP_1, OP_NUMNOTEQUAL, OP_NOT]),
+			pass([OP_0, OP_1, OP_LESSTHAN]),
+			pass([OP_1, OP_2, OP_LESSTHAN]),
+			pass([OP_1NEGATE, OP_0, OP_LESSTHAN]),
+			pass([OP_0, OP_0, OP_LESSTHAN, OP_NOT]),
+			pass([OP_1, OP_0, OP_GREATERTHAN]),
+			pass([OP_0, OP_1NEGATE, OP_GREATERTHAN]),
+			pass([OP_2, OP_1, OP_GREATERTHAN]),
+			pass([OP_0, OP_0, OP_GREATERTHAN, OP_NOT]),
+			pass([OP_0, OP_1, OP_LESSTHANOREQUAL]),
+			pass([OP_1NEGATE, OP_0, OP_LESSTHANOREQUAL]),
+			pass([OP_0, OP_0, OP_LESSTHANOREQUAL]),
+			pass([OP_1NEGATE, OP_1NEGATE, OP_LESSTHANOREQUAL]),
+			pass([OP_1, OP_0, OP_GREATERTHANOREQUAL]),
+			pass([OP_0, OP_1NEGATE, OP_GREATERTHANOREQUAL]),
+			pass([OP_0, OP_0, OP_GREATERTHANOREQUAL]),
+			pass([OP_1, OP_1, OP_GREATERTHANOREQUAL]),
+			pass([OP_0, OP_1, OP_MIN, OP_0, OP_EQUAL]),
+			pass([OP_0, OP_0, OP_MIN, OP_0, OP_EQUAL]),
+			pass([OP_1NEGATE, OP_0, OP_MIN, OP_1NEGATE, OP_EQUAL]),
+			pass([OP_0, OP_1, OP_MAX, OP_1, OP_EQUAL]),
+			pass([OP_0, OP_0, OP_MAX, OP_0, OP_EQUAL]),
+			pass([OP_1NEGATE, OP_0, OP_MAX, OP_0, OP_EQUAL]),
+			pass([OP_0, OP_0, OP_1, OP_WITHIN]),
+			pass([OP_0, OP_1NEGATE, OP_1, OP_WITHIN]),
+			pass([1, 0, OP_BIN2NUM, OP_0, OP_EQUAL]),
+			pass([3, 0, 0, 0, OP_BIN2NUM, OP_0, OP_EQUAL]),
+			pass([7, 1, 0, 0, 0, 0, 0, 0, OP_BIN2NUM, OP_1, OP_EQUAL]),
+			pass([7, 1, 0, 0, 0, 0, 0, 0x80, OP_BIN2NUM, OP_1NEGATE, OP_EQUAL]),
+			pass([1, 0x80, OP_BIN2NUM, OP_0, OP_EQUAL]),
+			pass([7, 0, 0, 0, 0, 0, 0, 0x80, OP_BIN2NUM, OP_0, OP_EQUAL]),
+			pass([7, 1, 2, 3, 0, 0, 0, 0, OP_BIN2NUM, 3, 1, 2, 3, OP_EQUAL]),
+			pass([OP_1, OP_7, OP_NUM2BIN, 7, 1, 0, 0, 0, 0, 0, 0, OP_EQUAL]),
+			pass([OP_0, OP_4, OP_NUM2BIN, OP_0, OP_NUMEQUAL]),
+			pass([OP_0, OP_4, OP_NUM2BIN, OP_0, OP_EQUAL, OP_NOT]),
+			pass([OP_1, OP_1, OP_16, OP_NUM2BIN, OP_BIN2NUM, OP_EQUAL]),
+			pass([OP_1NEGATE, OP_DUP, OP_16, OP_NUM2BIN, OP_BIN2NUM, OP_EQUAL]),
+			pass([OP_1, 5, 129, 0, 0, 0, 0, OP_NUM2BIN]),
+			pass([OP_1, OP_RIPEMD160]),
+			pass([OP_0, OP_RIPEMD160]),
+			pass(
+				Array.from(encodePushData(decodeHex('cea1b21f1a739fba68d1d4290437d2c5609be1d3')))
+					.concat(Array.from(encodePushData(decodeHex('0123456789abcdef'))))
+					.concat([OP_RIPEMD160, OP_EQUAL])
+			),
+			pass([OP_1, OP_SHA1]),
+			pass([OP_0, OP_SHA1]),
+			pass(
+				Array.from(encodePushData(decodeHex('0ca2eadb529ac2e63abf9b4ae3df8ee121f10547')))
+					.concat(Array.from(encodePushData(decodeHex('0123456789abcdef'))))
+					.concat([OP_SHA1, OP_EQUAL])
+			),
+			pass([OP_1, OP_SHA256]),
+			pass([OP_0, OP_SHA256]),
+			pass(
+				Array.from(
+					encodePushData(decodeHex('55c53f5d490297900cefa825d0c8e8e9532ee8a118abe7d8570762cd38be9818'))
+				)
+					.concat(Array.from(encodePushData(decodeHex('0123456789abcdef'))))
+					.concat([OP_SHA256, OP_EQUAL])
+			),
+			pass([OP_1, OP_HASH160]),
+			pass([OP_0, OP_HASH160]),
+			pass(
+				Array.from(encodePushData(decodeHex('a956ed79819901b1b2c7b3ec045081f749c588ed')))
+					.concat(Array.from(encodePushData(decodeHex('0123456789abcdef'))))
+					.concat([OP_HASH160, OP_EQUAL])
+			),
+			pass([OP_1, OP_HASH256]),
+			pass([OP_0, OP_HASH256]),
+			pass(
+				Array.from(
+					encodePushData(decodeHex('137ad663f79da06e282ed0abbec4d70523ced5ff8e39d5c2e5641d978c5925aa'))
+				)
+					.concat(Array.from(encodePushData(decodeHex('0123456789abcdef'))))
+					.concat([OP_HASH256, OP_EQUAL])
+			),
+			pass([OP_NOP1, OP_NOP2, OP_NOP3, OP_NOP4, OP_NOP5, OP_NOP6, OP_NOP7, OP_NOP8, OP_NOP9, OP_NOP10, OP_1]),
+		];
 
+		await Promise.allSettled(promises);
+	});
 	test('checksig', async () => {
 		const rawtx =
 			'0100000001b207aba3f19358f3a58048d7647cff2ca25a57fe92a1c4324ba47fdde7d7eca4030000006a4730440220316f5707b0a872c67bebc10f15832389c96a6be58e803c992d6b4b3bc5864687022019cf6ab02706865b8507a4f56eeae155ac794a363d95dce8c8777c10f1f9fc01412103093313584be3ccd8777947c1b8f9cc945e9764296451aa29209f9ac56eb4e91affffffff03204e0000000000001976a91461ed573d90e9582689739e72d17624b2d8faa4c388ac204e0000000000001976a914fca1fe054916c043dc36d703a464cb6edce8e72e88ac5b0c6e01000000001976a91400937c46183f418f8eaac2af10db62c5c852ffe888ac00000000';
@@ -411,11 +429,11 @@ describe('evalScript', () => {
 		const prevtx = decodeTx(decodeHex(prevrawtx));
 		const input = tx.inputs[vin];
 		const { vout } = input;
-		const unlockScript = input.script;
+		const unlockScript = input.script.buffer;
 		const prevout = prevtx.outputs[vout];
-		const lockScript = prevout.script;
+		const lockScript = prevout.script.buffer;
 		const parentSatoshis = prevout.satoshis;
-		const vm = evalScript(unlockScript, lockScript, tx, vin, parentSatoshis, { async: false });
+		const vm = await evalScript(unlockScript, lockScript, tx, vin, parentSatoshis, { async: false });
 		expect(vm.success).toBe(true);
 		const tx2 = decodeTx(decodeHex(rawtx));
 		const vm2 = await evalScript(unlockScript, lockScript, tx2, vin, parentSatoshis, { async: true });
@@ -427,21 +445,20 @@ describe('evalScript', () => {
 
 		const lockScriptWriter = new BufferWriter();
 		writePushData(lockScriptWriter, pk.toPublicKey().toBuffer());
-		lockScriptWriter.write([OP_CHECKSIGVERIFY]);
-		lockScriptWriter.write([OP_1]);
+		lockScriptWriter.write(new Uint8Array([OP_CHECKSIGVERIFY]));
+		lockScriptWriter.write(new Uint8Array([OP_1]));
 		const lockScript = lockScriptWriter.toBuffer();
 
-		const tx1 = new nimble.Transaction().output({ script: lockScript, satoshis: 1000 });
+		const tx1 = new nimble.Transaction().output({ script: new Script(lockScript), satoshis: 1000 });
 
 		const tx2 = new nimble.Transaction().from(tx1.outputs[0]);
 
-		const signature = generateTxSignature(tx2, 0, lockScript, 1000, pk.number, pk.toPublicKey().point);
+		const signature = await generateTxSignature(tx2, 0, lockScript, 1000, pk.number, pk.toPublicKey().point);
 		const unlockScript = encodePushData(signature);
 
-		tx2.inputs[0].script = unlockScript;
+		tx2.inputs[0].script = new Script(unlockScript);
 
-		expect(evalScript(unlockScript, lockScript, tx2, 0, 1000, { async: false }).success).toBe(true);
-		expect((await evalScript(unlockScript, lockScript, tx2, 0, 1000, { async: true })).success).toBe(true);
+		expect((await evalScript(unlockScript, lockScript, tx2, 0, 1000)).success).toBe(true);
 	});
 
 	test('checkmultisig valid', async () => {
@@ -450,30 +467,29 @@ describe('evalScript', () => {
 		const pk3 = nimble.PrivateKey.fromRandom();
 
 		const lockScriptWriter = new BufferWriter();
-		lockScriptWriter.write([OP_2]);
+		lockScriptWriter.write(new Uint8Array([OP_2]));
 		writePushData(lockScriptWriter, pk1.toPublicKey().toBuffer());
 		writePushData(lockScriptWriter, pk2.toPublicKey().toBuffer());
 		writePushData(lockScriptWriter, pk3.toPublicKey().toBuffer());
-		lockScriptWriter.write([OP_3]);
-		lockScriptWriter.write([OP_CHECKMULTISIG]);
+		lockScriptWriter.write(new Uint8Array([OP_3]));
+		lockScriptWriter.write(new Uint8Array([OP_CHECKMULTISIG]));
 		const lockScript = lockScriptWriter.toBuffer();
 
-		const tx1 = new nimble.Transaction().output({ script: lockScript, satoshis: 1000 });
+		const tx1 = new nimble.Transaction().output({ script: new Script(lockScript), satoshis: 1000 });
 
 		const tx2 = new nimble.Transaction().from(tx1.outputs[0]);
 
-		const signature1 = generateTxSignature(tx2, 0, lockScript, 1000, pk1.number, pk1.toPublicKey().point);
-		const signature3 = generateTxSignature(tx2, 0, lockScript, 1000, pk3.number, pk3.toPublicKey().point);
+		const signature1 = await generateTxSignature(tx2, 0, lockScript, 1000, pk1.number, pk1.toPublicKey().point);
+		const signature3 = await generateTxSignature(tx2, 0, lockScript, 1000, pk3.number, pk3.toPublicKey().point);
 
 		const unlockScriptWriter = new BufferWriter();
-		unlockScriptWriter.write([OP_0]);
+		unlockScriptWriter.write(new Uint8Array([OP_0]));
 		writePushData(unlockScriptWriter, signature1);
 		writePushData(unlockScriptWriter, signature3);
 		const unlockScript = unlockScriptWriter.toBuffer();
-		tx2.inputs[0].script = unlockScript;
+		tx2.inputs[0].script = new Script(unlockScript);
 
-		expect(evalScript(unlockScript, lockScript, tx2, 0, 1000, { async: false }).success).toBe(true);
-		expect((await evalScript(unlockScript, lockScript, tx2, 0, 1000, { async: true })).success).toBe(true);
+		expect((await evalScript(unlockScript, lockScript, tx2, 0, 1000)).success).toBe(true);
 	});
 
 	test('checkmultisig throws if out of order', async () => {
@@ -482,30 +498,29 @@ describe('evalScript', () => {
 		const pk3 = nimble.PrivateKey.fromRandom();
 
 		const lockScriptWriter = new BufferWriter();
-		lockScriptWriter.write([OP_2]);
+		lockScriptWriter.write(new Uint8Array([OP_2]));
 		writePushData(lockScriptWriter, pk1.toPublicKey().toBuffer());
 		writePushData(lockScriptWriter, pk2.toPublicKey().toBuffer());
 		writePushData(lockScriptWriter, pk3.toPublicKey().toBuffer());
-		lockScriptWriter.write([OP_3]);
-		lockScriptWriter.write([OP_CHECKMULTISIG]);
+		lockScriptWriter.write(new Uint8Array([OP_3]));
+		lockScriptWriter.write(new Uint8Array([OP_CHECKMULTISIG]));
 		const lockScript = lockScriptWriter.toBuffer();
 
-		const tx1 = new nimble.Transaction().output({ script: lockScript, satoshis: 1000 });
+		const tx1 = new nimble.Transaction().output({ script: new Script(lockScript), satoshis: 1000 });
 
 		const tx2 = new nimble.Transaction().from(tx1.outputs[0]);
 
-		const signature1 = generateTxSignature(tx2, 0, lockScript, 1000, pk1.number, pk1.toPublicKey().point);
-		const signature3 = generateTxSignature(tx2, 0, lockScript, 1000, pk3.number, pk3.toPublicKey().point);
+		const signature1 = await generateTxSignature(tx2, 0, lockScript, 1000, pk1.number, pk1.toPublicKey().point);
+		const signature3 = await generateTxSignature(tx2, 0, lockScript, 1000, pk3.number, pk3.toPublicKey().point);
 
 		const unlockScriptWriter = new BufferWriter();
-		unlockScriptWriter.write([OP_0]);
+		unlockScriptWriter.write(new Uint8Array([OP_0]));
 		writePushData(unlockScriptWriter, signature3);
 		writePushData(unlockScriptWriter, signature1);
 		const unlockScript = unlockScriptWriter.toBuffer();
-		tx2.inputs[0].script = unlockScript;
+		tx2.inputs[0].script = new Script(unlockScript);
 
-		expect(evalScript(unlockScript, lockScript, tx2, 0, 1000, { async: false }).success).toBe(false);
-		expect((await evalScript(unlockScript, lockScript, tx2, 0, 1000, { async: true })).success).toBe(false);
+		expect((await evalScript(unlockScript, lockScript, tx2, 0, 1000)).success).toBe(false);
 	});
 
 	test('checkmultisigverify throws if repeat signatures', async () => {
@@ -514,243 +529,243 @@ describe('evalScript', () => {
 		const pk3 = nimble.PrivateKey.fromRandom();
 
 		const lockScriptWriter = new BufferWriter();
-		lockScriptWriter.write([OP_2]);
+		lockScriptWriter.write(new Uint8Array([OP_2]));
 		writePushData(lockScriptWriter, pk1.toPublicKey().toBuffer());
 		writePushData(lockScriptWriter, pk2.toPublicKey().toBuffer());
 		writePushData(lockScriptWriter, pk3.toPublicKey().toBuffer());
-		lockScriptWriter.write([OP_3]);
-		lockScriptWriter.write([OP_CHECKMULTISIGVERIFY]);
+		lockScriptWriter.write(new Uint8Array([OP_3]));
+		lockScriptWriter.write(new Uint8Array([OP_CHECKMULTISIGVERIFY]));
 		const lockScript = lockScriptWriter.toBuffer();
 
-		const tx1 = new nimble.Transaction().output({ script: lockScript, satoshis: 1000 });
+		const tx1 = new nimble.Transaction().output({ script: new Script(lockScript), satoshis: 1000 });
 
 		const tx2 = new nimble.Transaction().from(tx1.outputs[0]);
 
-		const signature1 = generateTxSignature(tx2, 0, lockScript, 1000, pk1.number, pk1.toPublicKey().point);
+		const signature1 = await generateTxSignature(tx2, 0, lockScript, 1000, pk1.number, pk1.toPublicKey().point);
 
 		const unlockScriptWriter = new BufferWriter();
-		unlockScriptWriter.write([OP_0]);
+		unlockScriptWriter.write(new Uint8Array([OP_0]));
 		writePushData(unlockScriptWriter, signature1);
 		writePushData(unlockScriptWriter, signature1);
 		const unlockScript = unlockScriptWriter.toBuffer();
-		tx2.inputs[0].script = unlockScript;
+		tx2.inputs[0].script = new Script(unlockScript);
 
-		expect(evalScript(unlockScript, lockScript, tx2, 0, 1000, { async: false }).success).toBe(false);
-		expect((await evalScript(unlockScript, lockScript, tx2, 0, 1000, { async: true })).success).toBe(false);
+		expect((await evalScript(unlockScript, lockScript, tx2, 0, 1000)).success).toBe(false);
 	});
 
 	test('bad', async () => {
 		async function fail(script: number[]) {
-			expect(evalScript([], script, undefined, undefined, undefined, { async: false }).success).toBe(false);
-			expect((await evalScript([], script, undefined, undefined, undefined, { async: true })).success).toBe(
-				false
-			);
+			expect((await evalScript(new Uint8Array([]), new Uint8Array(script))).success).toBe(false);
 		}
 
-		await fail([]);
-		await fail([OP_FALSE]);
-		await fail([1]);
-		await fail([3, 0, 1]);
-		await fail([OP_PUSHDATA1, 0]);
-		await fail([OP_PUSHDATA1, 1]);
-		await fail([OP_PUSHDATA1, 10, 0]);
-		await fail([OP_PUSHDATA2, 20, 0]);
-		await fail([OP_PUSHDATA4, 30, 0]);
-		await fail([OP_IF, OP_ENDIF]);
-		await fail([OP_1, OP_1, OP_IF]);
-		await fail([OP_1, OP_1, OP_NOTIF]);
-		await fail([OP_1, OP_ELSE]);
-		await fail([OP_1, OP_ENDIF]);
-		await fail([OP_1, OP_1, OP_IF, OP_ELSE]);
-		await fail([OP_1, OP_1, OP_IF, OP_IF, OP_ENDIF]);
-		await fail([OP_0, OP_IF, OP_1, OP_ELSE, OP_0, OP_ENDIF]);
-		await fail([OP_0, OP_IF, OP_PUSHDATA1, 1, 1, OP_1, OP_ENDIF]);
-		await fail([OP_VERIFY]);
-		await fail([OP_0, OP_VERIFY]);
-		await fail([OP_RETURN]);
-		await fail([OP_FALSE, OP_RETURN]);
-		await fail([OP_TOALTSTACK, OP_1]);
-		await fail([OP_FROMALTSTACK, OP_1]);
-		await fail([OP_0, OP_TOALTSTACK, OP_1, OP_FROMALTSTACK]);
-		await fail([OP_IFDUP]);
-		await fail([OP_DROP]);
-		await fail([OP_1, OP_DROP, OP_DROP]);
-		await fail([OP_DUP]);
-		await fail([OP_NIP]);
-		await fail([OP_1, OP_NIP]);
-		await fail([OP_OVER]);
-		await fail([OP_1, OP_OVER]);
-		await fail([OP_PICK]);
-		await fail([OP_0, OP_PICK]);
-		await fail([OP_0, OP_1, OP_PICK]);
-		await fail([OP_ROLL]);
-		await fail([OP_0, OP_ROLL]);
-		await fail([OP_0, OP_1, OP_ROLL]);
-		await fail([OP_ROT]);
-		await fail([OP_1, OP_ROT]);
-		await fail([OP_1, OP_1, OP_ROT]);
-		await fail([OP_0, OP_1, OP_1, OP_ROT]);
-		await fail([OP_SWAP]);
-		await fail([OP_1, OP_SWAP]);
-		await fail([OP_0, OP_1, OP_SWAP]);
-		await fail([OP_TUCK]);
-		await fail([OP_1, OP_TUCK]);
-		await fail([OP_1, OP_0, OP_TUCK]);
-		await fail([OP_2DROP]);
-		await fail([OP_1, OP_2DROP]);
-		await fail([OP_1, OP_1, OP_2DROP]);
-		await fail([OP_2DUP]);
-		await fail([OP_1, OP_2DUP]);
-		await fail([OP_1, OP_0, OP_2DUP]);
-		await fail([OP_3DUP]);
-		await fail([OP_1, OP_3DUP]);
-		await fail([OP_1, OP_1, OP_3DUP]);
-		await fail([OP_1, OP_1, OP_0, OP_3DUP]);
-		await fail([OP_2OVER]);
-		await fail([OP_1, OP_2OVER]);
-		await fail([OP_1, OP_1, OP_2OVER]);
-		await fail([OP_1, OP_1, OP_1, OP_2OVER]);
-		await fail([OP_1, OP_0, OP_1, OP_1, OP_2OVER]);
-		await fail([OP_2ROT]);
-		await fail([OP_1, OP_2ROT]);
-		await fail([OP_1, OP_1, OP_2ROT]);
-		await fail([OP_1, OP_1, OP_1, OP_2ROT]);
-		await fail([OP_1, OP_1, OP_1, OP_1, OP_2ROT]);
-		await fail([OP_1, OP_1, OP_1, OP_1, OP_1, OP_2ROT]);
-		await fail([OP_1, OP_0, OP_1, OP_1, OP_1, OP_1, OP_2ROT]);
-		await fail([OP_2SWAP]);
-		await fail([OP_1, OP_2SWAP]);
-		await fail([OP_1, OP_1, OP_2SWAP]);
-		await fail([OP_1, OP_1, OP_1, OP_2SWAP]);
-		await fail([OP_1, OP_0, OP_1, OP_1, OP_2SWAP]);
-		await fail([OP_CAT]);
-		await fail([OP_1, OP_CAT]);
-		await fail([OP_1, OP_0, OP_0, OP_CAT]);
-		await fail([OP_SPLIT]);
-		await fail([OP_1, OP_SPLIT]);
-		await fail([OP_0, OP_1, OP_SPLIT]);
-		await fail([OP_1, OP_2, OP_SPLIT]);
-		await fail([OP_1, OP_1NEGATE, OP_SPLIT]);
-		await fail([OP_0, OP_SIZE]);
-		await fail([OP_AND]);
-		await fail([OP_0, OP_AND]);
-		await fail([OP_0, OP_1, OP_AND]);
-		await fail([OP_OR]);
-		await fail([OP_0, OP_OR]);
-		await fail([OP_0, OP_1, OP_OR]);
-		await fail([OP_XOR]);
-		await fail([OP_0, OP_XOR]);
-		await fail([OP_0, OP_1, OP_XOR]);
-		await fail([OP_LSHIFT]);
-		await fail([OP_1, OP_LSHIFT]);
-		await fail([OP_1, OP_1NEGATE, OP_LSHIFT]);
-		await fail([OP_RSHIFT]);
-		await fail([OP_1, OP_RSHIFT]);
-		await fail([OP_1, OP_1NEGATE, OP_RSHIFT]);
-		await fail([OP_INVERT]);
-		await fail([OP_EQUAL]);
-		await fail([OP_0, OP_EQUAL]);
-		await fail([OP_1, OP_0, OP_EQUAL]);
-		await fail([OP_1, OP_0, OP_EQUALVERIFY, OP_1]);
-		await fail([OP_1ADD]);
-		await fail([OP_1SUB]);
-		await fail([OP_NEGATE]);
-		await fail([OP_ABS]);
-		await fail([OP_NOT]);
-		await fail([OP_0NOTEQUAL]);
-		await fail([OP_ADD]);
-		await fail([OP_1, OP_ADD]);
-		await fail([5, 0, 0, 0, 0, 0, OP_ADD]);
-		await fail([OP_SUB]);
-		await fail([OP_1, OP_SUB]);
-		await fail([5, 0, 0, 0, 0, 0, OP_SUB]);
-		await fail([OP_MUL]);
-		await fail([OP_1, OP_MUL]);
-		await fail([5, 0, 0, 0, 0, 0, OP_MUL]);
-		await fail([2, 0, 0, 2, 0, 0, OP_MUL]);
-		await fail([OP_DIV]);
-		await fail([OP_1, OP_DIV]);
-		await fail([5, 0, 0, 0, 0, 0, OP_DIV]);
-		await fail([OP_1, OP_0, OP_DIV]);
-		await fail([OP_MOD]);
-		await fail([OP_1, OP_MOD]);
-		await fail([5, 0, 0, 0, 0, 0, OP_MOD]);
-		await fail([OP_1, OP_0, OP_MOD]);
-		await fail([OP_BOOLAND]);
-		await fail([OP_1, OP_BOOLAND]);
-		await fail([5, 0, 0, 0, 0, 0, OP_BOOLAND]);
-		await fail([OP_BOOLOR]);
-		await fail([OP_1, OP_BOOLOR]);
-		await fail([5, 0, 0, 0, 0, 0, OP_BOOLOR]);
-		await fail([OP_NUMEQUAL]);
-		await fail([OP_1, OP_NUMEQUAL]);
-		await fail([5, 0, 0, 0, 0, 0, OP_NUMEQUAL]);
-		await fail([OP_0, OP_1, OP_NUMEQUAL]);
-		await fail([OP_NUMEQUALVERIFY]);
-		await fail([OP_1, OP_NUMEQUALVERIFY]);
-		await fail([5, 0, 0, 0, 0, 0, OP_NUMEQUALVERIFY]);
-		await fail([OP_1, OP_2, OP_NUMEQUALVERIFY]);
-		await fail([OP_NUMNOTEQUAL]);
-		await fail([OP_1, OP_NUMNOTEQUAL]);
-		await fail([5, 0, 0, 0, 0, 0, OP_NUMNOTEQUAL]);
-		await fail([OP_1, OP_1, OP_NUMNOTEQUAL]);
-		await fail([OP_LESSTHAN]);
-		await fail([OP_1, OP_LESSTHAN]);
-		await fail([5, 0, 0, 0, 0, 0, OP_LESSTHAN]);
-		await fail([OP_1, OP_0, OP_LESSTHAN]);
-		await fail([OP_0, OP_1NEGATE, OP_LESSTHAN]);
-		await fail([OP_GREATERTHAN]);
-		await fail([OP_1, OP_GREATERTHAN]);
-		await fail([5, 0, 0, 0, 0, 0, OP_GREATERTHAN]);
-		await fail([OP_0, OP_1, OP_GREATERTHAN]);
-		await fail([OP_1NEGATE, OP_0, OP_GREATERTHAN]);
-		await fail([OP_LESSTHANOREQUAL]);
-		await fail([OP_1, OP_LESSTHANOREQUAL]);
-		await fail([5, 0, 0, 0, 0, 0, OP_LESSTHANOREQUAL]);
-		await fail([OP_1, OP_0, OP_LESSTHANOREQUAL]);
-		await fail([OP_0, OP_1NEGATE, OP_LESSTHANOREQUAL]);
-		await fail([OP_GREATERTHANOREQUAL]);
-		await fail([OP_1, OP_GREATERTHANOREQUAL]);
-		await fail([5, 0, 0, 0, 0, 0, OP_GREATERTHANOREQUAL]);
-		await fail([OP_0, OP_1, OP_GREATERTHANOREQUAL]);
-		await fail([OP_1NEGATE, OP_0, OP_GREATERTHANOREQUAL]);
-		await fail([OP_MIN]);
-		await fail([OP_1, OP_MIN]);
-		await fail([5, 0, 0, 0, 0, 0, OP_MIN]);
-		await fail([OP_MAX]);
-		await fail([OP_1, OP_MAX]);
-		await fail([5, 0, 0, 0, 0, 0, OP_MAX]);
-		await fail([OP_WITHIN]);
-		await fail([OP_1, OP_WITHIN]);
-		await fail([OP_1, OP_1, OP_WITHIN]);
-		await fail([5, 0, 0, 0, 0, 0, OP_WITHIN]);
-		await fail([OP_0, OP_1, OP_2, OP_WITHIN]);
-		await fail([OP_0, OP_1NEGATE, OP_0, OP_WITHIN]);
-		await fail([OP_BIN2NUM]);
-		await fail([OP_NUM2BIN]);
-		await fail([OP_1, OP_NUM2BIN]);
-		await fail([OP_1, OP_0, OP_NUM2BIN]);
-		await fail([OP_1, OP_1NEGATE, OP_NUM2BIN]);
-		await fail([5, 129, 0, 0, 0, 0, OP_1, OP_NUM2BIN]);
-		await fail([OP_RIPEMD160]);
-		await fail([OP_SHA1]);
-		await fail([OP_SHA256]);
-		await fail([OP_HASH160]);
-		await fail([OP_HASH256]);
-		await fail([OP_CHECKSIG]);
-		await fail([OP_1, OP_CHECKSIG]);
-		await fail([OP_CHECKSIGVERIFY]);
-		await fail([OP_1, OP_CHECKSIGVERIFY]);
-		await fail([OP_CHECKMULTISIG]);
-		await fail([OP_1, OP_CHECKMULTISIG]);
-		await fail([OP_0, OP_0, OP_CHECKMULTISIG]);
-		await fail([OP_0, OP_0, OP_1NEGATE, OP_CHECKMULTISIG]);
-		await fail([OP_0, OP_1NEGATE, OP_0, OP_CHECKMULTISIG]);
-		await fail([OP_0, OP_0, OP_1, OP_CHECKMULTISIG]);
-		await fail([OP_0, OP_0, 1, 21, OP_CHECKMULTISIG]);
-		await fail([OP_0, OP_9, OP_9, OP_2, OP_9, OP_1, OP_CHECKMULTISIG]);
-		await fail([OP_NOP10 + 1]);
-		await fail([255]);
+		const promises = [
+			fail([]),
+			fail([OP_FALSE]),
+			fail([1]),
+			fail([3, 0, 1]),
+			fail([OP_PUSHDATA1, 0]),
+			fail([OP_PUSHDATA1, 1]),
+			fail([OP_PUSHDATA1, 10, 0]),
+			fail([OP_PUSHDATA2, 20, 0]),
+			fail([OP_PUSHDATA4, 30, 0]),
+			fail([OP_IF, OP_ENDIF]),
+			fail([OP_1, OP_1, OP_IF]),
+			fail([OP_1, OP_1, OP_NOTIF]),
+			fail([OP_1, OP_ELSE]),
+			fail([OP_1, OP_ENDIF]),
+			fail([OP_1, OP_1, OP_IF, OP_ELSE]),
+			fail([OP_1, OP_1, OP_IF, OP_IF, OP_ENDIF]),
+			fail([OP_0, OP_IF, OP_1, OP_ELSE, OP_0, OP_ENDIF]),
+			fail([OP_0, OP_IF, OP_PUSHDATA1, 1, 1, OP_1, OP_ENDIF]),
+			fail([OP_VERIFY]),
+			fail([OP_0, OP_VERIFY]),
+			fail([OP_RETURN]),
+			fail([OP_FALSE, OP_RETURN]),
+			fail([OP_TOALTSTACK, OP_1]),
+			fail([OP_FROMALTSTACK, OP_1]),
+			fail([OP_0, OP_TOALTSTACK, OP_1, OP_FROMALTSTACK]),
+			fail([OP_IFDUP]),
+			fail([OP_DROP]),
+			fail([OP_1, OP_DROP, OP_DROP]),
+			fail([OP_DUP]),
+			fail([OP_NIP]),
+			fail([OP_1, OP_NIP]),
+			fail([OP_OVER]),
+			fail([OP_1, OP_OVER]),
+			fail([OP_PICK]),
+			fail([OP_0, OP_PICK]),
+			fail([OP_0, OP_1, OP_PICK]),
+			fail([OP_ROLL]),
+			fail([OP_0, OP_ROLL]),
+			fail([OP_0, OP_1, OP_ROLL]),
+			fail([OP_ROT]),
+			fail([OP_1, OP_ROT]),
+			fail([OP_1, OP_1, OP_ROT]),
+			fail([OP_0, OP_1, OP_1, OP_ROT]),
+			fail([OP_SWAP]),
+			fail([OP_1, OP_SWAP]),
+			fail([OP_0, OP_1, OP_SWAP]),
+			fail([OP_TUCK]),
+			fail([OP_1, OP_TUCK]),
+			fail([OP_1, OP_0, OP_TUCK]),
+			fail([OP_2DROP]),
+			fail([OP_1, OP_2DROP]),
+			fail([OP_1, OP_1, OP_2DROP]),
+			fail([OP_2DUP]),
+			fail([OP_1, OP_2DUP]),
+			fail([OP_1, OP_0, OP_2DUP]),
+			fail([OP_3DUP]),
+			fail([OP_1, OP_3DUP]),
+			fail([OP_1, OP_1, OP_3DUP]),
+			fail([OP_1, OP_1, OP_0, OP_3DUP]),
+			fail([OP_2OVER]),
+			fail([OP_1, OP_2OVER]),
+			fail([OP_1, OP_1, OP_2OVER]),
+			fail([OP_1, OP_1, OP_1, OP_2OVER]),
+			fail([OP_1, OP_0, OP_1, OP_1, OP_2OVER]),
+			fail([OP_2ROT]),
+			fail([OP_1, OP_2ROT]),
+			fail([OP_1, OP_1, OP_2ROT]),
+			fail([OP_1, OP_1, OP_1, OP_2ROT]),
+			fail([OP_1, OP_1, OP_1, OP_1, OP_2ROT]),
+			fail([OP_1, OP_1, OP_1, OP_1, OP_1, OP_2ROT]),
+			fail([OP_1, OP_0, OP_1, OP_1, OP_1, OP_1, OP_2ROT]),
+			fail([OP_2SWAP]),
+			fail([OP_1, OP_2SWAP]),
+			fail([OP_1, OP_1, OP_2SWAP]),
+			fail([OP_1, OP_1, OP_1, OP_2SWAP]),
+			fail([OP_1, OP_0, OP_1, OP_1, OP_2SWAP]),
+			fail([OP_CAT]),
+			fail([OP_1, OP_CAT]),
+			fail([OP_1, OP_0, OP_0, OP_CAT]),
+			fail([OP_SPLIT]),
+			fail([OP_1, OP_SPLIT]),
+			fail([OP_0, OP_1, OP_SPLIT]),
+			fail([OP_1, OP_2, OP_SPLIT]),
+			fail([OP_1, OP_1NEGATE, OP_SPLIT]),
+			fail([OP_0, OP_SIZE]),
+			fail([OP_AND]),
+			fail([OP_0, OP_AND]),
+			fail([OP_0, OP_1, OP_AND]),
+			fail([OP_OR]),
+			fail([OP_0, OP_OR]),
+			fail([OP_0, OP_1, OP_OR]),
+			fail([OP_XOR]),
+			fail([OP_0, OP_XOR]),
+			fail([OP_0, OP_1, OP_XOR]),
+			fail([OP_LSHIFT]),
+			fail([OP_1, OP_LSHIFT]),
+			fail([OP_1, OP_1NEGATE, OP_LSHIFT]),
+			fail([OP_RSHIFT]),
+			fail([OP_1, OP_RSHIFT]),
+			fail([OP_1, OP_1NEGATE, OP_RSHIFT]),
+			fail([OP_INVERT]),
+			fail([OP_EQUAL]),
+			fail([OP_0, OP_EQUAL]),
+			fail([OP_1, OP_0, OP_EQUAL]),
+			fail([OP_1, OP_0, OP_EQUALVERIFY, OP_1]),
+			fail([OP_1ADD]),
+			fail([OP_1SUB]),
+			fail([OP_NEGATE]),
+			fail([OP_ABS]),
+			fail([OP_NOT]),
+			fail([OP_0NOTEQUAL]),
+			fail([OP_ADD]),
+			fail([OP_1, OP_ADD]),
+			fail([5, 0, 0, 0, 0, 0, OP_ADD]),
+			fail([OP_SUB]),
+			fail([OP_1, OP_SUB]),
+			fail([5, 0, 0, 0, 0, 0, OP_SUB]),
+			fail([OP_MUL]),
+			fail([OP_1, OP_MUL]),
+			fail([5, 0, 0, 0, 0, 0, OP_MUL]),
+			fail([2, 0, 0, 2, 0, 0, OP_MUL]),
+			fail([OP_DIV]),
+			fail([OP_1, OP_DIV]),
+			fail([5, 0, 0, 0, 0, 0, OP_DIV]),
+			fail([OP_1, OP_0, OP_DIV]),
+			fail([OP_MOD]),
+			fail([OP_1, OP_MOD]),
+			fail([5, 0, 0, 0, 0, 0, OP_MOD]),
+			fail([OP_1, OP_0, OP_MOD]),
+			fail([OP_BOOLAND]),
+			fail([OP_1, OP_BOOLAND]),
+			fail([5, 0, 0, 0, 0, 0, OP_BOOLAND]),
+			fail([OP_BOOLOR]),
+			fail([OP_1, OP_BOOLOR]),
+			fail([5, 0, 0, 0, 0, 0, OP_BOOLOR]),
+			fail([OP_NUMEQUAL]),
+			fail([OP_1, OP_NUMEQUAL]),
+			fail([5, 0, 0, 0, 0, 0, OP_NUMEQUAL]),
+			fail([OP_0, OP_1, OP_NUMEQUAL]),
+			fail([OP_NUMEQUALVERIFY]),
+			fail([OP_1, OP_NUMEQUALVERIFY]),
+			fail([5, 0, 0, 0, 0, 0, OP_NUMEQUALVERIFY]),
+			fail([OP_1, OP_2, OP_NUMEQUALVERIFY]),
+			fail([OP_NUMNOTEQUAL]),
+			fail([OP_1, OP_NUMNOTEQUAL]),
+			fail([5, 0, 0, 0, 0, 0, OP_NUMNOTEQUAL]),
+			fail([OP_1, OP_1, OP_NUMNOTEQUAL]),
+			fail([OP_LESSTHAN]),
+			fail([OP_1, OP_LESSTHAN]),
+			fail([5, 0, 0, 0, 0, 0, OP_LESSTHAN]),
+			fail([OP_1, OP_0, OP_LESSTHAN]),
+			fail([OP_0, OP_1NEGATE, OP_LESSTHAN]),
+			fail([OP_GREATERTHAN]),
+			fail([OP_1, OP_GREATERTHAN]),
+			fail([5, 0, 0, 0, 0, 0, OP_GREATERTHAN]),
+			fail([OP_0, OP_1, OP_GREATERTHAN]),
+			fail([OP_1NEGATE, OP_0, OP_GREATERTHAN]),
+			fail([OP_LESSTHANOREQUAL]),
+			fail([OP_1, OP_LESSTHANOREQUAL]),
+			fail([5, 0, 0, 0, 0, 0, OP_LESSTHANOREQUAL]),
+			fail([OP_1, OP_0, OP_LESSTHANOREQUAL]),
+			fail([OP_0, OP_1NEGATE, OP_LESSTHANOREQUAL]),
+			fail([OP_GREATERTHANOREQUAL]),
+			fail([OP_1, OP_GREATERTHANOREQUAL]),
+			fail([5, 0, 0, 0, 0, 0, OP_GREATERTHANOREQUAL]),
+			fail([OP_0, OP_1, OP_GREATERTHANOREQUAL]),
+			fail([OP_1NEGATE, OP_0, OP_GREATERTHANOREQUAL]),
+			fail([OP_MIN]),
+			fail([OP_1, OP_MIN]),
+			fail([5, 0, 0, 0, 0, 0, OP_MIN]),
+			fail([OP_MAX]),
+			fail([OP_1, OP_MAX]),
+			fail([5, 0, 0, 0, 0, 0, OP_MAX]),
+			fail([OP_WITHIN]),
+			fail([OP_1, OP_WITHIN]),
+			fail([OP_1, OP_1, OP_WITHIN]),
+			fail([5, 0, 0, 0, 0, 0, OP_WITHIN]),
+			fail([OP_0, OP_1, OP_2, OP_WITHIN]),
+			fail([OP_0, OP_1NEGATE, OP_0, OP_WITHIN]),
+			fail([OP_BIN2NUM]),
+			fail([OP_NUM2BIN]),
+			fail([OP_1, OP_NUM2BIN]),
+			fail([OP_1, OP_0, OP_NUM2BIN]),
+			fail([OP_1, OP_1NEGATE, OP_NUM2BIN]),
+			fail([5, 129, 0, 0, 0, 0, OP_1, OP_NUM2BIN]),
+			fail([OP_RIPEMD160]),
+			fail([OP_SHA1]),
+			fail([OP_SHA256]),
+			fail([OP_HASH160]),
+			fail([OP_HASH256]),
+			fail([OP_CHECKSIG]),
+			fail([OP_1, OP_CHECKSIG]),
+			fail([OP_CHECKSIGVERIFY]),
+			fail([OP_1, OP_CHECKSIGVERIFY]),
+			fail([OP_CHECKMULTISIG]),
+			fail([OP_1, OP_CHECKMULTISIG]),
+			fail([OP_0, OP_0, OP_CHECKMULTISIG]),
+			fail([OP_0, OP_0, OP_1NEGATE, OP_CHECKMULTISIG]),
+			fail([OP_0, OP_1NEGATE, OP_0, OP_CHECKMULTISIG]),
+			fail([OP_0, OP_0, OP_1, OP_CHECKMULTISIG]),
+			fail([OP_0, OP_0, 1, 21, OP_CHECKMULTISIG]),
+			fail([OP_0, OP_9, OP_9, OP_2, OP_9, OP_1, OP_CHECKMULTISIG]),
+			fail([OP_NOP10 + 1]),
+			fail([255]),
+		];
+
+		await Promise.allSettled(promises);
 	});
 
 	test('op_push_tx', async () => {
@@ -769,65 +784,63 @@ describe('evalScript', () => {
 		const { vout } = tx.inputs[vin];
 		const prevout = prevtx.outputs[vout];
 
-		expect(evalScript(tx.inputs[vin].script, prevout.script, tx, vin, prevout.satoshis).success).toBe(true);
-		expect((await evalScript(tx.inputs[vin].script, prevout.script, tx, vin, prevout.satoshis)).success).toBe(true);
+		expect(
+			(await evalScript(tx.inputs[vin].script.buffer, prevout.script.buffer, tx, vin, prevout.satoshis)).success
+		).toBe(true);
 	});
 
 	test('acceps unlock with pushdata script', async () => {
-		const unlock = [OP_1, OP_2];
-		const lock = [OP_ADD, OP_3, OP_EQUAL];
-		expect(evalScript(unlock, lock, undefined, undefined, undefined, { async: false }).success).toBe(true);
-		expect((await evalScript(unlock, lock, undefined, undefined, undefined, { async: true })).success).toBe(true);
+		const unlock = new Uint8Array([OP_1, OP_2]);
+		const lock = new Uint8Array([OP_ADD, OP_3, OP_EQUAL]);
+		expect((await evalScript(unlock, lock)).success).toBe(true);
 	});
 
 	test('rejects unlock with non-pushdata script', async () => {
-		const unlock = [OP_1, OP_2, OP_ADD];
-		const lock = [OP_3, OP_EQUAL];
-		expect(evalScript(unlock, lock, undefined, undefined, undefined, { async: false }).success).toBe(false);
-		expect((await evalScript(unlock, lock, undefined, undefined, undefined, { async: true })).success).toBe(false);
+		const unlock = new Uint8Array([OP_1, OP_2, OP_ADD]);
+		const lock = new Uint8Array([OP_3, OP_EQUAL]);
+		expect((await evalScript(unlock, lock)).success).toBe(false);
 	});
 });
 
 describe('evalScript stackTrace', () => {
-	test('correctly traces stack through if/else branches', () => {
-		const vm = evalScript([OP_1], [OP_IF, OP_1, OP_1, OP_ELSE, OP_2, OP_2, OP_ENDIF, OP_ADD]);
+	test('correctly traces stack through if/else branches', async () => {
+		const vm = await evalScript(
+			new Uint8Array([OP_1]),
+			new Uint8Array([OP_IF, OP_1, OP_1, OP_ELSE, OP_2, OP_2, OP_ENDIF, OP_ADD])
+		);
 		expect(vm.stackTrace.length).toEqual(vm.chunks.length);
 		expect(vm.stack).toEqual([[2]]);
 	});
 
-	test('correctly traces stack through negative if/else branches', () => {
-		const vm = evalScript([OP_0], [OP_IF, OP_1, OP_1, OP_ELSE, OP_2, OP_2, OP_ENDIF, OP_ADD]);
+	test('correctly traces stack through negative if/else branches', async () => {
+		const vm = await evalScript(
+			new Uint8Array([OP_0]),
+			new Uint8Array([OP_IF, OP_1, OP_1, OP_ELSE, OP_2, OP_2, OP_ENDIF, OP_ADD])
+		);
 		expect(vm.stackTrace.length).toEqual(vm.chunks.length);
 		expect(vm.stack).toEqual([[4]]);
 	});
 
-	test('correctly traces stack through nested if/else branches', () => {
-		const vm = evalScript(
-			[OP_1],
-			[OP_IF, OP_1, OP_1, OP_IF, OP_2, OP_ELSE, OP_3, OP_ENDIF, OP_ELSE, OP_2, OP_2, OP_ENDIF, OP_ADD]
+	test('correctly traces stack through nested if/else branches', async () => {
+		const vm = await evalScript(
+			new Uint8Array([OP_1]),
+			new Uint8Array([
+				OP_IF,
+				OP_1,
+				OP_1,
+				OP_IF,
+				OP_2,
+				OP_ELSE,
+				OP_3,
+				OP_ENDIF,
+				OP_ELSE,
+				OP_2,
+				OP_2,
+				OP_ENDIF,
+				OP_ADD,
+			])
 		);
 		expect(vm.stackTrace.length).toEqual(vm.chunks.length);
 		expect(vm.stack).toEqual([[3]]);
-	});
-
-	test('does not trace after OP_RETURN', () => {
-		const vm = evalScript([OP_1], [OP_2, OP_RETURN, OP_10, { buf: [1, 2, 3, 4] }]);
-		expect(vm.chunks.length).toEqual(5);
-		expect(vm.stackTrace.length).toEqual(3);
-		expect(vm.stack).toEqual([[1], [2]]);
-	});
-
-	test('does not trace after eval error', () => {
-		const vm = evalScript([OP_1], [OP_FALSE, OP_VERIFY, OP_10, { buf: [1, 2, 3, 4] }]);
-		expect(vm.chunks.length).toEqual(5);
-		expect(vm.stackTrace.length).toEqual(3);
-		expect(vm.stack).toEqual([[1]]);
-	});
-
-	test('does not trace after setup error', () => {
-		const vm = evalScript([{ buf: [1, 2, 3, 4] }, OP_BIN2NUM], [OP_1, OP_FALSE, OP_VERIFY, OP_10]);
-		expect(vm.chunks.length).toEqual(0);
-		expect(vm.stackTrace.length).toEqual(0);
-		expect(vm.stack).toEqual([]);
 	});
 });

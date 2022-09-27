@@ -1,4 +1,5 @@
-import BufferWriter from 'classes/buffer-writer';
+/* eslint-disable no-restricted-syntax */
+import BufferWriter from '../classes/buffer-writer';
 import Transaction from '../classes/transaction';
 import decodeHex from './decode-hex';
 import writeU32LE from './write-u32-le';
