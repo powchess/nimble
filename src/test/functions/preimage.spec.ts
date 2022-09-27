@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable no-bitwise */
 import bsv from 'bsv';
 import { describe, test, expect } from 'vitest';
@@ -32,7 +33,7 @@ describe('preimage', () => {
 		);
 		const bsvPreimage = new Uint8Array(bsvPreimageBuf.buffer, bsvPreimageBuf.byteOffset, bsvPreimageBuf.byteLength);
 		const tx = decodeTx(decodeHex(bsvtx.toString()));
-		const runPreimage = await preimage(tx, 1, [0x01], 2000, SIGHASH_ALL | SIGHASH_FORKID);
+		const runPreimage = await preimage(tx, 1, new Uint8Array([0x01]), 2000, SIGHASH_ALL | SIGHASH_FORKID);
 		expect(bsvPreimage).toEqual(runPreimage);
 	});
 
@@ -53,7 +54,7 @@ describe('preimage', () => {
 		);
 		const bsvPreimage = new Uint8Array(bsvPreimageBuf.buffer, bsvPreimageBuf.byteOffset, bsvPreimageBuf.byteLength);
 		const tx = decodeTx(decodeHex(bsvtx.toString()));
-		const runPreimage = await preimage(tx, 0, [0x00], 1000, SIGHASH_NONE | SIGHASH_FORKID);
+		const runPreimage = await preimage(tx, 0, new Uint8Array([0x00]), 1000, SIGHASH_NONE | SIGHASH_FORKID);
 		expect(bsvPreimage).toEqual(runPreimage);
 	});
 
@@ -81,7 +82,7 @@ describe('preimage', () => {
 		);
 		const bsvPreimage = new Uint8Array(bsvPreimageBuf.buffer, bsvPreimageBuf.byteOffset, bsvPreimageBuf.byteLength);
 		const tx = decodeTx(decodeHex(bsvtx.toString()));
-		const runPreimage = await preimage(tx, 0, [0x00], 1000, SIGHASH_SINGLE | SIGHASH_FORKID);
+		const runPreimage = await preimage(tx, 0, new Uint8Array([0x00]), 1000, SIGHASH_SINGLE | SIGHASH_FORKID);
 		expect(bsvPreimage).toEqual(runPreimage);
 	});
 
@@ -105,7 +106,13 @@ describe('preimage', () => {
 		);
 		const bsvPreimage = new Uint8Array(bsvPreimageBuf.buffer, bsvPreimageBuf.byteOffset, bsvPreimageBuf.byteLength);
 		const tx = decodeTx(decodeHex(bsvtx.toString()));
-		const runPreimage = await preimage(tx, 0, [0x00], 1000, SIGHASH_SINGLE | SIGHASH_ANYONECANPAY | SIGHASH_FORKID);
+		const runPreimage = await preimage(
+			tx,
+			0,
+			new Uint8Array([0x00]),
+			1000,
+			SIGHASH_SINGLE | SIGHASH_ANYONECANPAY | SIGHASH_FORKID
+		);
 		expect(bsvPreimage).toEqual(runPreimage);
 	});
 
@@ -126,11 +133,15 @@ describe('preimage', () => {
 		);
 		const bsvPreimage = new Uint8Array(bsvPreimageBuf.buffer, bsvPreimageBuf.byteOffset, bsvPreimageBuf.byteLength);
 		const tx = decodeTx(decodeHex(bsvtx.toString()));
+		// @ts-ignore
 		delete tx.version;
+		// @ts-ignore
 		delete tx.inputs[0].sequence;
+		// @ts-ignore
 		delete tx.outputs;
+		// @ts-ignore
 		delete tx.locktime;
-		const runPreimage = await preimage(tx, 0, [0x00], 1000, SIGHASH_ALL | SIGHASH_FORKID);
+		const runPreimage = await preimage(tx, 0, new Uint8Array([0x00]), 1000, SIGHASH_ALL | SIGHASH_FORKID);
 		expect(bsvPreimage).toEqual(runPreimage);
 	});
 });
