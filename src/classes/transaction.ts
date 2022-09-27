@@ -46,14 +46,14 @@ export class Input {
 
 	sequence: number;
 
-	output: Output;
+	output: Output | undefined;
 
 	constructor(
 		txid: string,
 		vout: number,
-		output: Output,
 		script: Script | Uint8Array | string = new Uint8Array([]),
-		sequence = 0
+		sequence = 0,
+		output?: Output
 	) {
 		if (!isHex(txid) || txid.length !== 64) throw new Error(`bad txid: ${txid}`);
 		if (!Number.isInteger(vout) || vout < 0) throw new Error(`bad vout: ${vout}`);
@@ -62,7 +62,7 @@ export class Input {
 		this.vout = vout;
 		this.script = Script.from(script);
 		this.sequence = verifySequence(sequence);
-		this.output = output;
+		if (output) this.output = output;
 	}
 }
 
@@ -150,7 +150,7 @@ export default class Transaction {
 
 	get hash() {
 		if (Object.isFrozen(this)) {
-			if (TRANSACTION_TO_TXID_CACHE.has(this)) return TRANSACTION_TO_TXID_CACHE.get(this);
+			if (TRANSACTION_TO_TXID_CACHE.has(this)) return TRANSACTION_TO_TXID_CACHE.get(this) as string;
 			const txid = calculateTxid(this.toBuffer());
 			TRANSACTION_TO_TXID_CACHE.set(this, txid);
 			return txid;
@@ -166,28 +166,28 @@ export default class Transaction {
 			throw new Error(`missing previous output information for input ${incompleteInputIndex}\n\n${hint}`);
 		}
 
-		const satoshisIn = this.inputs.reduce((prev, curr) => prev + curr.output.satoshis, 0);
+		const satoshisIn = this.inputs.reduce((prev, curr) => prev + Number(curr.output?.satoshis) || 0, 0);
 		const satoshisOut = this.outputs.reduce((prev, curr) => prev + curr.satoshis, 0);
-
 		return satoshisIn - satoshisOut;
 	}
 
-	from(output: Output | Output[], tx: Transaction | Transaction[]) {
+	from(inOrOutput: Output | Output[] | Input | Input[]) {
 		if (Object.isFrozen(this)) throw new Error('transaction finalized');
 
-		if (Array.isArray(output)) {
-			output.forEach((out) => this.from(out, tx));
+		if (Array.isArray(inOrOutput)) {
+			inOrOutput.forEach((out) => this.from(out));
 			return this;
 		}
 
-		const transactions = Array.isArray(tx) ? tx : [tx];
-		const transaction = transactions.find((transx) => transx.outputs.indexOf(output) >= 0);
-		if (!transaction) return this;
+		if (inOrOutput instanceof Input) {
+			this.inputs.push(inOrOutput);
+			return this;
+		}
 
-		const vout = transaction.outputs.indexOf(output);
-		const txid = transaction.hash;
+		const vout = this.outputs.indexOf(inOrOutput);
+		const txid = this.hash;
 
-		const input = new Input(txid, vout, output, new Uint8Array([]), 0xffffffff);
+		const input = new Input(txid, vout, new Uint8Array([]), 0xffffffff, inOrOutput);
 		this.inputs.push(input);
 
 		return this;
@@ -275,7 +275,9 @@ export default class Transaction {
 	}
 
 	verify() {
-		const parents = this.inputs.map((input) => input.output);
+		const parents = this.inputs
+			.filter((input) => input.output !== undefined)
+			.map((input) => input.output) as Output[];
 		const minFeePerKb = this.feePerKb;
 		verifyTx(this, parents, minFeePerKb);
 		return this;

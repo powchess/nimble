@@ -32,7 +32,7 @@ export default function readTx(reader: BufferReader): {
 		const script = reader.read(scriptLength);
 		const sequence = readU32LE(reader);
 
-		const input = new Input(txid, vout, outputs[vin], script, sequence);
+		const input = new Input(txid, vout, script, sequence, outputs[vin]);
 		inputs.push(input);
 	}
 
