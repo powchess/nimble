@@ -26,7 +26,6 @@
 		"format": "prettier --ignore-path .gitignore --write --plugin-search-dir=. ."
 	},
 	"devDependencies": {
-		"@tsconfig/node16-strictest-esm": "^1.0.3",
 		"@typescript-eslint/eslint-plugin": "^5.38.0",
 		"@typescript-eslint/parser": "^5.38.0",
 		"@vitest/coverage-c8": "^0.23.4",

@@ -65,14 +65,14 @@ describe('verifyTx', () => {
 	});
 
 	test('throws if no outputs', () => {
-		const input = new Input(new nimble.Transaction().hash, 0);
+		const input = new Input(new Transaction().hash, 0);
 		const tx = new Transaction();
 		tx.inputs = [input];
 		expect(() => verifyTx(tx)).toThrow('no outputs');
 	});
 
 	test('throws if insufficient fees', () => {
-		const input = new Input(new nimble.Transaction().hash, 0);
+		const input = new Input(new Transaction().hash, 0);
 		const output = new Output(new Script(), 1000);
 		const tx = new Transaction();
 		tx.inputs = [input];
@@ -81,8 +81,8 @@ describe('verifyTx', () => {
 		expect(() => verifyTx(tx, parents, 50)).toThrow('insufficient priority');
 	});
 
-	test('throws if duplicate input', () => {
-		const input = new Input(new nimble.Transaction().hash, 0);
+	test.only('throws if duplicate input', () => {
+		const input = new Input(new Transaction().hash, 0);
 		const output = new Output(new Script(), 1000);
 		const tx = new Transaction();
 		tx.inputs = [input];
